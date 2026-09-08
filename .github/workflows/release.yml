@@ -73,5 +73,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           for f in whysynth-*.tar.gz whysynth-*.zip; do
-            [ -f "$f" ] && gh release upload "$GITHUB_REF_NAME" "$f" --clobber
+            if [ -f "$f" ]; then gh release upload "$GITHUB_REF_NAME" "$f" --clobber; fi
           done
