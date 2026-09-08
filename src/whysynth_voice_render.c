@@ -1068,7 +1068,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
       default:
       case 0:   /* White */
         for (sample = 0; sample < sample_count; sample++) {
-            f = ((float)random() / (float)RAND_MAX) - 0.5f;
+            f = ((float)rand() / (float)RAND_MAX) - 0.5f;
             voice->osc_bus_a[index]   += level_a * f;
             voice->osc_bus_b[index++] += level_b * f;
             /* noise oscillators do not export sync */
@@ -1083,7 +1083,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         c1 = vosc->f1;
         c2 = vosc->f2;
         for (sample = 0; sample < sample_count; sample++) {
-            f = ((float)random() / (float)RAND_MAX) - 0.5f;
+            f = ((float)rand() / (float)RAND_MAX) - 0.5f;
             c0 = c0 * 0.99765 + f * 0.0990460;
             c1 = c1 * 0.96300 + f * 0.2965164;
             c2 = c2 * 0.57000 + f * 1.0526913;
@@ -1116,7 +1116,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         for (sample = 0; sample < sample_count; sample++) {
 
             c1 = c1 + f * c0;
-            c2 = (((float)random() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
+            c2 = (((float)rand() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
             c0 = f * c2 + c0;
 
             voice->osc_bus_a[index]   += level_a * c1;
@@ -1144,7 +1144,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         for (sample = 0; sample < sample_count; sample++) {
 
             c1 = c1 + f * c0;
-            c2 = (((float)random() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
+            c2 = (((float)rand() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
             c0 = f * c2 + c0;
 
             voice->osc_bus_a[index]   += level_a * c0;
