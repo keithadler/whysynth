@@ -33,8 +33,6 @@
 #include <string.h>
 #include <math.h>
 
-#include <ladspa.h>
-#include <dssi.h>
 
 #include "whysynth_types.h"
 #include "whysynth_ports.h"
@@ -343,7 +341,7 @@ void y_voice_setup_lfo(y_synth_t *synth, y_slfo_t *slfo, struct vlfo *vlfo,
 void y_voice_update_lfo(y_synth_t *synth, y_slfo_t *slfo, struct vlfo *vlfo,
                         struct vmod *srcmods, struct vmod *destmod);
 void y_voice_render(y_synth_t *synth, y_voice_t *voice,
-                    LADSPA_Data *out_left, LADSPA_Data *out_right,
+                    float *out_left, float *out_right,
                     unsigned long sample_count, int do_control_update);
 
 /* in agran_oscillator.c */

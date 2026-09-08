@@ -1,0 +1,19 @@
+build/
+build-*/
+*.o
+*.lo
+*.la
+.libs/
+*.wav
+.DS_Store
+# autotools leftovers
+autom4te.cache/
+config.h
+config.h.in
+config.log
+config.status
+configure
+Makefile
+Makefile.in
+src/Makefile
+src/Makefile.in

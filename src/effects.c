@@ -24,7 +24,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <ladspa.h>
 
 #include "whysynth_types.h"
 #include "dssp_event.h"
@@ -115,7 +114,7 @@ effects_cleanup(y_synth_t *synth)
  */
 void 
 effects_process(y_synth_t *synth, unsigned long sample_count,
-                LADSPA_Data *out_left, LADSPA_Data *out_right)
+                float *out_left, float *out_right)
 {
     unsigned long i;
     int current_effect_mode = lrintf(*(synth->effect_mode)); /* will not be 0 */

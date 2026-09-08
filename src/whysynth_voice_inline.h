@@ -62,7 +62,7 @@ pitch_to_frequency(float pitch)
  * y_voice_mod_index
  */
 static inline int
-y_voice_mod_index(LADSPA_Data *p)
+y_voice_mod_index(float *p)
 {
     int i = lrintf(*p);
 

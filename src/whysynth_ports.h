@@ -25,7 +25,31 @@
 #  include <config.h>
 #endif
 
-#include <ladspa.h>
+/* The port table uses the LADSPA descriptor flag values. They are defined
+ * here so the engine needs no ladspa.h; the values are ladspa.h's own. */
+#ifndef LADSPA_PORT_INPUT
+#define LADSPA_PORT_INPUT   0x1
+#define LADSPA_PORT_OUTPUT  0x2
+#define LADSPA_PORT_CONTROL 0x4
+#define LADSPA_PORT_AUDIO   0x8
+#define LADSPA_HINT_BOUNDED_BELOW   0x1
+#define LADSPA_HINT_BOUNDED_ABOVE   0x2
+#define LADSPA_HINT_TOGGLED         0x4
+#define LADSPA_HINT_SAMPLE_RATE     0x8
+#define LADSPA_HINT_LOGARITHMIC     0x10
+#define LADSPA_HINT_INTEGER         0x20
+#define LADSPA_HINT_DEFAULT_MASK    0x3C0
+#define LADSPA_HINT_DEFAULT_NONE    0x0
+#define LADSPA_HINT_DEFAULT_MINIMUM 0x40
+#define LADSPA_HINT_DEFAULT_LOW     0x80
+#define LADSPA_HINT_DEFAULT_MIDDLE  0xC0
+#define LADSPA_HINT_DEFAULT_HIGH    0x100
+#define LADSPA_HINT_DEFAULT_MAXIMUM 0x140
+#define LADSPA_HINT_DEFAULT_0       0x200
+#define LADSPA_HINT_DEFAULT_1       0x240
+#define LADSPA_HINT_DEFAULT_100     0x280
+#define LADSPA_HINT_DEFAULT_440     0x2C0
+#endif
 
 /* -PORTS- */
 #define Y_PORT_OUTPUT_LEFT          0
@@ -335,11 +359,11 @@
 
 struct y_port_descriptor {
 
-    LADSPA_PortDescriptor          port_descriptor;
+    int                            port_descriptor;
     char *                         name;
-    LADSPA_PortRangeHintDescriptor hint_descriptor;
-    LADSPA_Data                    lower_bound;
-    LADSPA_Data                    upper_bound;
+    int                            hint_descriptor;
+    float                          lower_bound;
+    float                          upper_bound;
     int                            type;
     float                          scale;  /* steepness of logarithmic scaling for '0LOG' and 'BPLOG' knob types */
     int                            subtype;

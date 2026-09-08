@@ -29,7 +29,6 @@
 #include <string.h>
 #include <math.h>
 
-#include <ladspa.h>
 
 #include "whysynth_types.h"
 #include "dssp_event.h"
@@ -183,7 +182,7 @@ Plate_process (struct Plate *plate, float x, float decay, float * _xl, float * _
 
 void
 effect_reverb_process(y_synth_t *synth, unsigned long frames,
-                      LADSPA_Data *out_left, LADSPA_Data *out_right)
+                      float *out_left, float *out_right)
 {
     struct Plate *plate = (struct Plate *)synth->effect_buffer;
     double d, damp;
@@ -264,7 +263,7 @@ void effect_delay_setup(y_synth_t *synth)
 
 void
 effect_delay_process(y_synth_t *synth, unsigned long frames,
-                     LADSPA_Data *out_left, LADSPA_Data *out_right)
+                     float *out_left, float *out_right)
 {
     struct DualDelay *delay = (struct DualDelay *)synth->effect_buffer;
     float wet, dry, fb, fa, fia, damping;

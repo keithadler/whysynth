@@ -25,7 +25,6 @@
 #  include <config.h>
 #endif
 
-#include <ladspa.h>
 
 #include "whysynth_ports.h"
 #include "agran_oscillator.h"

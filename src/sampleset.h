@@ -21,7 +21,6 @@
 #ifndef _SAMPLESET_H
 #define _SAMPLESET_H
 
-#include <ladspa.h>
 
 #include "whysynth_types.h"
 #include "whysynth_voice.h"

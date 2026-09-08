@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <ladspa.h>
 
 #include "whysynth.h"
 #include "dssp_event.h"
@@ -186,7 +185,7 @@ pan_cv_to_amplitude(float cv)
  * y_voice_waveform_index
  */
 static inline int
-y_voice_waveform_index(LADSPA_Data *p)
+y_voice_waveform_index(float *p)
 {
     int i = lrintf(*p);
 
@@ -226,6 +225,11 @@ y_voice_setup_lfo(y_synth_t *synth, y_slfo_t *slfo, struct vlfo *vlfo,
     float mult0, mult1;
     struct vmod *bpmod = destmods,
                 *upmod = destmods + 1;
+
+    /* the mode LFOs start at multiples of the phase spread, which can put
+     * phase past 1.0; the wavetable lookup below needs it in [0, 1) */
+    phase = fmodf(phase, 1.0f);
+    if (phase < 0.0f) phase += 1.0f;
 
     vlfo->freqmult = random_float(1.0f - randfreq * 0.5f, randfreq);
     vlfo->pos = phase + *(slfo->frequency) * vlfo->freqmult / synth->control_rate;
@@ -2594,7 +2598,7 @@ vcf_resonz(unsigned long sample_count, y_svcf_t *svcf, y_voice_t *voice,
  */
 void
 y_voice_render(y_synth_t *synth, y_voice_t *voice,
-                    LADSPA_Data *out_left, LADSPA_Data *out_right,
+                    float *out_left, float *out_right,
                     unsigned long sample_count, int do_control_update)
 {
     unsigned long sample;

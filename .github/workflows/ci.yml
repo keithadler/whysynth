@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Linux
+            os: ubuntu-latest
+            validator: ubuntu
+          - name: macOS
+            os: macos-latest
+            validator: macos-universal
+          - name: Windows
+            os: windows-latest
+            validator: windows
+    defaults:
+      run:
+        shell: ${{ matrix.os == 'windows-latest' && 'msys2 {0}' || 'bash' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Linux dependencies (DSSI, GTK2, LV2 for the legacy targets)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y dssi-dev liblo-dev libgtk2.0-dev libasound2-dev lv2-dev liblilv-dev lilv-utils
+
+      - name: Set up MSYS2
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            git
+            unzip
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release ${{ matrix.os == 'windows-latest' && '-G Ninja' || '' }} ${{ matrix.os == 'macos-latest' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Check the LV2 bundle with lilv-utils
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          LV2_PATH=$PWD/build/lv2 lv2ls | grep -q keithadler/whysynth
+          LV2_PATH=$PWD/build/lv2 lv2info https://github.com/keithadler/whysynth
+
+      - name: Validate with clap-validator
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download 0.4.1 --repo free-audio/clap-validator --pattern "*${{ matrix.validator }}*" --dir validator
+          cd validator
+          for z in *.zip; do unzip -o -q "$z"; done
+          for t in $(find . -name '*.tar.gz'); do tar xzf "$t" -C "$(dirname "$t")"; done
+          V=$(find . -type f \( -name clap-validator -o -name clap-validator.exe \) | head -1)
+          chmod +x "$V"
+          cd ..
+          "validator/$V" validate --only-failed build/WhySynth.clap
+
+      - name: Upload build
+        uses: actions/upload-artifact@v4
+        with:
+          name: whysynth-${{ matrix.name }}
+          path: |
+            build/WhySynth.clap
+            build/lv2/whysynth.lv2
+            build/whysynth-render
+            build/whysynth-render.exe
+          if-no-files-found: ignore

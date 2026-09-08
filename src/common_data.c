@@ -23,7 +23,6 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
-#include <unistd.h>
 #include <stdarg.h>
 #include <inttypes.h>
 #include <locale.h>
@@ -31,6 +30,7 @@
 #include "whysynth_types.h"
 #include "whysynth.h"
 #include "whysynth_voice.h"
+#include "common_data.h"
 
 y_patch_t y_init_voice = {
     "  <-->",
@@ -512,15 +512,64 @@ y_sscanf(const char *str, const char *format, ...)
 
 /* end of y_sscanf.c */
 
+/* ---- line readers ---- */
+
+static char *
+file_gets(void *ctx, char *buf, int size)
+{
+    return fgets(buf, size, (FILE *)ctx);
+}
+
+static char *
+memory_gets(void *ctx, char *buf, int size)
+{
+    y_memreader_t *m = (y_memreader_t *)ctx;
+    int n = 0;
+
+    if (m->pos >= m->size) return NULL;
+    while (n < size - 1 && m->pos < m->size) {
+        char c = m->data[m->pos++];
+        buf[n++] = c;
+        if (c == '\n') break;
+    }
+    buf[n] = 0;
+    return buf;
+}
+
+void
+y_reader_init_file(y_reader_t *r, FILE *file)
+{
+    r->gets = file_gets;
+    r->ctx = file;
+}
+
+void
+y_reader_init_memory(y_reader_t *r, y_memreader_t *m, const char *data, size_t size)
+{
+    m->data = data;
+    m->size = size;
+    m->pos = 0;
+    r->gets = memory_gets;
+    r->ctx = m;
+}
+
 int
 y_data_read_patch(FILE *file, y_patch_t *patch)
+{
+    y_reader_t r;
+    y_reader_init_file(&r, file);
+    return y_data_read_patch_r(&r, patch);
+}
+
+int
+y_data_read_patch_r(y_reader_t *r, y_patch_t *patch)
 {
     int format, i;
     char c, buf[256], buf2[181];
     y_patch_t tmp;
 
     do {
-        if (!fgets(buf, 256, file)) return 0;
+        if (!r->gets(r->ctx, buf, 256)) return 0;
     } while (y_data_is_comment(buf));
 
     if (sscanf(buf, " WhySynth patch format %d begin", &format) != 1 ||
@@ -531,7 +580,7 @@ y_data_read_patch(FILE *file, y_patch_t *patch)
 
     while (1) {
         
-        if (!fgets(buf, 256, file)) return 0;
+        if (!r->gets(r->ctx, buf, 256)) return 0;
 
         /* 'name %20%20<init%20voice>' */
         if (sscanf(buf, " name %90s%n", buf2, &i) == 1) {
@@ -743,3 +792,147 @@ y_data_locate_patch_file(const char *origpath, const char *project_dir)
     return NULL;
 }
 
+
+/* ---- patch text writer ---- */
+
+/* number formatting that ignores the locale: %.6g, with any ',' made '.' */
+static int
+put_float(char *buf, size_t size, float f)
+{
+    int n = snprintf(buf, size, "%.6g", (double)f);
+    int i;
+    for (i = 0; i < n && i < (int)size; i++)
+        if (buf[i] == ',') buf[i] = '.';
+    return n;
+}
+
+/* append to buf at *pos; keeps *pos accurate even when it overflows */
+#define PUTS(str) do { const char *_s = (str); size_t _l = strlen(_s); \
+        if (*pos + _l < size) memcpy(buf + *pos, _s, _l + 1); *pos += _l; } while (0)
+#define PUTINT(v) do { char _t[32]; snprintf(_t, sizeof(_t), "%d", (int)(v)); PUTS(_t); } while (0)
+#define PUTF(v) do { char _t[48]; put_float(_t, sizeof(_t), (v)); PUTS(_t); } while (0)
+
+static void
+put_text(char *buf, size_t size, size_t *pos, const char *text, int maxlen)
+{
+    int i;
+    for (i = 0; i < maxlen && text[i]; i++) {
+        unsigned char c = (unsigned char)text[i];
+        if (c < 33 || c > 126 || c == '%') {
+            char t[8];
+            snprintf(t, sizeof(t), "%%%02x", c);
+            PUTS(t);
+        } else {
+            char t[2] = { (char)c, 0 };
+            PUTS(t);
+        }
+    }
+}
+
+static void
+put_osc(char *buf, size_t size, size_t *pos, int index, const struct posc *o)
+{
+    PUTS("oscY "); PUTINT(index);
+    PUTS(" "); PUTINT(o->mode); PUTS(" "); PUTINT(o->waveform); PUTS(" "); PUTINT(o->pitch);
+    PUTS(" "); PUTF(o->detune); PUTS(" "); PUTINT(o->pitch_mod_src); PUTS(" "); PUTF(o->pitch_mod_amt);
+    PUTS(" "); PUTF(o->mparam1); PUTS(" "); PUTF(o->mparam2); PUTS(" "); PUTINT(o->mmod_src);
+    PUTS(" "); PUTF(o->mmod_amt); PUTS(" "); PUTINT(o->amp_mod_src); PUTS(" "); PUTF(o->amp_mod_amt);
+    PUTS(" "); PUTF(o->level_a); PUTS(" "); PUTF(o->level_b); PUTS("\n");
+}
+
+static void
+put_vcf(char *buf, size_t size, size_t *pos, int index, const struct pvcf *v)
+{
+    PUTS("vcfY "); PUTINT(index);
+    PUTS(" "); PUTINT(v->mode); PUTS(" "); PUTINT(v->source); PUTS(" "); PUTF(v->frequency);
+    PUTS(" "); PUTINT(v->freq_mod_src); PUTS(" "); PUTF(v->freq_mod_amt); PUTS(" "); PUTF(v->qres);
+    PUTS(" "); PUTF(v->mparam); PUTS("\n");
+}
+
+static void
+put_lfo(char *buf, size_t size, size_t *pos, char which, const struct plfo *l)
+{
+    char w[2] = { which, 0 };
+    PUTS("lfoY "); PUTS(w);
+    PUTS(" "); PUTF(l->frequency); PUTS(" "); PUTINT(l->waveform); PUTS(" "); PUTF(l->delay);
+    PUTS(" "); PUTINT(l->amp_mod_src); PUTS(" "); PUTF(l->amp_mod_amt); PUTS("\n");
+}
+
+static void
+put_eg(char *buf, size_t size, size_t *pos, char which, const struct peg *e)
+{
+    char w[2] = { which, 0 };
+    PUTS("egY "); PUTS(w);
+    PUTS(" "); PUTINT(e->mode);
+    PUTS(" "); PUTINT(e->shape1); PUTS(" "); PUTF(e->time1); PUTS(" "); PUTF(e->level1);
+    PUTS(" "); PUTINT(e->shape2); PUTS(" "); PUTF(e->time2); PUTS(" "); PUTF(e->level2);
+    PUTS(" "); PUTINT(e->shape3); PUTS(" "); PUTF(e->time3); PUTS(" "); PUTF(e->level3);
+    PUTS(" "); PUTINT(e->shape4); PUTS(" "); PUTF(e->time4);
+    PUTS(" "); PUTF(e->vel_level_sens); PUTS(" "); PUTF(e->vel_time_scale); PUTS(" "); PUTF(e->kbd_time_scale);
+    PUTS(" "); PUTINT(e->amp_mod_src); PUTS(" "); PUTF(e->amp_mod_amt); PUTS("\n");
+}
+
+int
+y_data_patch_to_text(const y_patch_t *patch, char *buf, size_t size)
+{
+    size_t p = 0, *pos = &p;
+
+    if (size) buf[0] = 0;
+    PUTS("# WhySynth patch\nWhySynth patch format 1 begin\nname ");
+    put_text(buf, size, pos, patch->name, 30);
+    if (patch->category[0]) {
+        PUTS("\ncategory ");
+        put_text(buf, size, pos, patch->category, 10);
+    }
+    PUTS("\n");
+    if (patch->comment[0]) {
+        PUTS("comment ");
+        put_text(buf, size, pos, patch->comment, 60);
+        PUTS("\n");
+    }
+    put_osc(buf, size, pos, 1, &patch->osc1);
+    put_osc(buf, size, pos, 2, &patch->osc2);
+    put_osc(buf, size, pos, 3, &patch->osc3);
+    put_osc(buf, size, pos, 4, &patch->osc4);
+    put_vcf(buf, size, pos, 1, &patch->vcf1);
+    put_vcf(buf, size, pos, 2, &patch->vcf2);
+    PUTS("mix "); PUTF(patch->busa_level); PUTS(" "); PUTF(patch->busa_pan);
+    PUTS(" "); PUTF(patch->busb_level); PUTS(" "); PUTF(patch->busb_pan);
+    PUTS(" "); PUTF(patch->vcf1_level); PUTS(" "); PUTF(patch->vcf1_pan);
+    PUTS(" "); PUTF(patch->vcf2_level); PUTS(" "); PUTF(patch->vcf2_pan); PUTS("\n");
+    PUTS("volume "); PUTF(patch->volume); PUTS("\n");
+    PUTS("effects "); PUTINT(patch->effect_mode);
+    PUTS(" "); PUTF(patch->effect_param1); PUTS(" "); PUTF(patch->effect_param2);
+    PUTS(" "); PUTF(patch->effect_param3); PUTS(" "); PUTF(patch->effect_param4);
+    PUTS(" "); PUTF(patch->effect_param5); PUTS(" "); PUTF(patch->effect_param6);
+    PUTS(" "); PUTF(patch->effect_mix); PUTS("\n");
+    PUTS("glide "); PUTF(patch->glide_time); PUTS("\n");
+    PUTS("bend "); PUTINT(patch->bend_range); PUTS("\n");
+    put_lfo(buf, size, pos, 'g', &patch->glfo);
+    put_lfo(buf, size, pos, 'v', &patch->vlfo);
+    put_lfo(buf, size, pos, 'm', &patch->mlfo);
+    PUTS("mlfo "); PUTF(patch->mlfo_phase_spread); PUTS(" "); PUTF(patch->mlfo_random_freq); PUTS("\n");
+    put_eg(buf, size, pos, 'o', &patch->ego);
+    put_eg(buf, size, pos, '1', &patch->eg1);
+    put_eg(buf, size, pos, '2', &patch->eg2);
+    put_eg(buf, size, pos, '3', &patch->eg3);
+    put_eg(buf, size, pos, '4', &patch->eg4);
+    PUTS("modmix "); PUTF(patch->modmix_bias);
+    PUTS(" "); PUTINT(patch->modmix_mod1_src); PUTS(" "); PUTF(patch->modmix_mod1_amt);
+    PUTS(" "); PUTINT(patch->modmix_mod2_src); PUTS(" "); PUTF(patch->modmix_mod2_amt); PUTS("\n");
+    PUTS("WhySynth patch end\n");
+
+    return p < size ? (int)p : -1;
+}
+
+int
+y_data_write_patch(FILE *file, const y_patch_t *patch)
+{
+    char buf[4096];
+    if (y_data_patch_to_text(patch, buf, sizeof(buf)) < 0) return 0;
+    return fputs(buf, file) >= 0;
+}
+
+#undef PUTS
+#undef PUTINT
+#undef PUTF
