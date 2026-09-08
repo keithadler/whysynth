@@ -10,6 +10,7 @@ option(WHYSYNTH_BUILD_CLAP  "Build the CLAP plugin" ON)
 option(WHYSYNTH_BUILD_LV2   "Build the LV2 plugin" ON)
 option(WHYSYNTH_BUILD_DSSI  "Build the legacy DSSI plugin and GTK2 editor when their libraries are installed" ON)
 option(WHYSYNTH_BUILD_TOOLS "Build whysynth-render" ON)
+option(WHYSYNTH_BUILD_AUV2  "Build an Audio Unit (macOS) from the CLAP through clap-wrapper" ON)
 option(WHYSYNTH_BUILD_TESTS "Build the tests" ON)
 
 include(FetchContent)
@@ -107,6 +108,43 @@ if(WHYSYNTH_BUILD_CLAP)
         set_target_properties(whysynth_clap PROPERTIES SUFFIX ".clap")
         install(TARGETS whysynth_clap LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}/clap)
     endif()
+endif()
+
+# ---- Audio Unit v2, for Logic and GarageBand (macOS) ----
+# clap-wrapper links the CLAP statically into an AUv2 component. It fetches
+# Apple's AudioUnitSDK itself.
+
+if(APPLE AND WHYSYNTH_BUILD_CLAP AND WHYSYNTH_BUILD_AUV2)
+    enable_language(CXX OBJC OBJCXX)
+    set(CMAKE_CXX_STANDARD 17)
+    set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES ON CACHE BOOL "" FORCE)
+    set(CLAP_WRAPPER_BUILD_AUV2 ON CACHE BOOL "" FORCE)
+    FetchContent_Declare(clap-wrapper
+        GIT_REPOSITORY https://github.com/free-audio/clap-wrapper.git
+        GIT_TAG        v0.16.0
+        GIT_SHALLOW    TRUE)
+    FetchContent_MakeAvailable(clap-wrapper)
+
+    add_library(whysynth_clap_impl STATIC plugins/clap/whysynth_clap.c)
+    target_link_libraries(whysynth_clap_impl PUBLIC whysynth_engine clap)
+    target_include_directories(whysynth_clap_impl PUBLIC plugins/clap)
+    target_compile_definitions(whysynth_clap_impl PRIVATE WHYSYNTH_CLAP_NO_ENTRY=1)
+    target_compile_options(whysynth_clap_impl PRIVATE ${WHYSYNTH_C_FLAGS})
+
+    make_clapfirst_plugins(
+        TARGET_NAME whysynth_au
+        IMPL_TARGET whysynth_clap_impl
+        OUTPUT_NAME "WhySynth"
+        ENTRY_SOURCE "plugins/clap/whysynth_clap_entry.cpp"
+        BUNDLE_IDENTIFIER "com.github.keithadler.whysynth.au"
+        BUNDLE_VERSION ${PROJECT_VERSION}
+        COPY_AFTER_BUILD FALSE
+        PLUGIN_FORMATS CLAP AUV2
+        ASSET_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/auv2
+        AUV2_MANUFACTURER_NAME "Keith Adler"
+        AUV2_MANUFACTURER_CODE "KAdl"
+        AUV2_SUBTYPE_CODE "WhyS"
+        AUV2_INSTRUMENT_TYPE "aumu")
 endif()
 
 # ---- LV2 ----

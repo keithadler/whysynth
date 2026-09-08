@@ -83,6 +83,7 @@ jobs:
           path: |
             build/WhySynth.clap
             build/lv2/whysynth.lv2
+            build/auv2/WhySynth.component
             build/whysynth-render
             build/whysynth-render.exe
           if-no-files-found: ignore

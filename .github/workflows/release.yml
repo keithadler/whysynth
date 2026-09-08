@@ -56,6 +56,7 @@ jobs:
           mkdir -p $PKG/patches
           cp -R build/WhySynth.clap $PKG/
           cp -R build/lv2/whysynth.lv2 $PKG/
+          [ -d build/auv2/WhySynth.component ] && cp -R build/auv2/WhySynth.component $PKG/ || true
           cp build/whysynth-render* $PKG/ 2>/dev/null || true
           cp extra/*.WhySynth extra/COPYING-patches $PKG/patches/
           cp README.md CHANGELOG.md COPYING AUTHORS $PKG/

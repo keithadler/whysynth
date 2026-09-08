@@ -28,6 +28,7 @@
 #include <clap/clap.h>
 
 #include "whysynth_engine.h"
+#include "whysynth_clap_entry.h"
 
 #define WHYSYNTH_CLAP_ID  "com.github.keithadler.whysynth"
 #define MAX_EVENTS        4096
@@ -727,16 +728,21 @@ static const clap_plugin_factory_t whysynth_factory = {
     factory_get_plugin_count, factory_get_plugin_descriptor, factory_create_plugin
 };
 
-static bool entry_init(const char *plugin_path) { return true; }
-static void entry_deinit(void) {}
-static const void *entry_get_factory(const char *factory_id)
+/* The three entry functions are exported with external linkage so the same
+ * object can be linked statically into clap-wrapper's Audio Unit build
+ * (see whysynth_clap_entry.cpp); the CLAP module itself exports clap_entry. */
+bool whysynth_clap_init(const char *plugin_path) { return true; }
+void whysynth_clap_deinit(void) {}
+const void *whysynth_clap_get_factory(const char *factory_id)
 {
     return strcmp(factory_id, CLAP_PLUGIN_FACTORY_ID) ? NULL : &whysynth_factory;
 }
 
+#ifndef WHYSYNTH_CLAP_NO_ENTRY
 CLAP_EXPORT const clap_plugin_entry_t clap_entry = {
     .clap_version = CLAP_VERSION_INIT,
-    .init = entry_init,
-    .deinit = entry_deinit,
-    .get_factory = entry_get_factory,
+    .init = whysynth_clap_init,
+    .deinit = whysynth_clap_deinit,
+    .get_factory = whysynth_clap_get_factory,
 };
+#endif

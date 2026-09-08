@@ -15,7 +15,7 @@ libraries are installed.
 
 | | |
 |---|---|
-| Plugins | CLAP (`WhySynth.clap`), LV2 (`whysynth.lv2`), DSSI (legacy, Linux) |
+| Plugins | CLAP (`WhySynth.clap`), LV2 (`whysynth.lv2`), Audio Unit (`WhySynth.component`, macOS), DSSI (legacy, Linux) |
 | Platforms | Linux, macOS (Apple silicon and Intel), Windows |
 | Patches | `.WhySynth` text files; the factory bank is built in |
 | License | GPL-2.0-or-later; the patches are public domain |
@@ -25,11 +25,15 @@ libraries are installed.
 Builds for every platform are attached to each
 [release](https://github.com/keithadler/whysynth/releases). Unzip and copy:
 
-| Platform | CLAP | LV2 |
-|---|---|---|
-| Linux | `~/.clap/` | `~/.lv2/` |
-| macOS | `~/Library/Audio/Plug-Ins/CLAP/` | `~/Library/Audio/Plug-Ins/LV2/` |
-| Windows | `%COMMONPROGRAMFILES%\CLAP\` | `%APPDATA%\LV2\` |
+| Platform | CLAP | LV2 | Audio Unit |
+|---|---|---|---|
+| Linux | `~/.clap/` | `~/.lv2/` | |
+| macOS | `~/Library/Audio/Plug-Ins/CLAP/` | `~/Library/Audio/Plug-Ins/LV2/` | `~/Library/Audio/Plug-Ins/Components/` |
+| Windows | `%COMMONPROGRAMFILES%\CLAP\` | `%APPDATA%\LV2\` | |
+
+**Logic Pro and GarageBand** use the Audio Unit. After copying it, restart
+Logic; it appears under AU Instruments as Keith Adler > WhySynth. It passes
+Apple's `auval`, which is the check Logic runs before listing a plugin.
 
 The macOS build is unsigned. If macOS refuses to load it, remove the
 quarantine flag once:
@@ -53,6 +57,11 @@ implements `clap.preset-load`). The whole bank is saved with your session.
 **LV2.** The factory patches are shipped as LV2 presets, generated from the
 bank at build time, so they appear in your host's preset list. Any patch file
 can be turned into presets with `whysynth-lv2-gen presets out.ttl file.WhySynth`.
+
+**Audio Unit.** The AU is the CLAP wrapped by
+[clap-wrapper](https://github.com/free-audio/clap-wrapper), so it has the
+same parameters and the Program parameter, and Logic's own preset system
+saves the whole bank with the project.
 
 **Both.** Set `WHYSYNTH_DEFAULT_BANK` to a patch file to load it on every
 instance. Mod wheel, pressure, key and velocity are modulation sources; the
@@ -81,8 +90,8 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
-That produces `build/WhySynth.clap`, `build/lv2/whysynth.lv2/`, and
-`build/whysynth-render`. The CLAP and LV2 headers are fetched by CMake if not
+That produces `build/WhySynth.clap`, `build/lv2/whysynth.lv2/`,
+`build/whysynth-render`, and on macOS `build/auv2/WhySynth.component`. The CLAP and LV2 headers are fetched by CMake if not
 installed; KISS FFT is vendored. On Linux, installing `dssi-dev liblo-dev
 libgtk2.0-dev libasound2-dev` also builds the original DSSI plugin and GTK2
 editor. Installing `lilv-dev` (or `brew install lilv`) enables the LV2 host
@@ -103,8 +112,9 @@ level down on `whysynth_core.h`, which speaks LADSPA-style ports directly.
 
 ## What changed in 2.0
 
-- CLAP and LV2 plugins on three platforms, with per-platform CI and a
-  `clap-validator` pass on every commit.
+- CLAP and LV2 plugins on three platforms, plus an Audio Unit on macOS for
+  Logic and GarageBand, with per-platform CI and a `clap-validator` pass on
+  every commit.
 - CMake replaces autotools.
 - FFTW replaced by a vendored KISS FFT (BSD) behind two small wrappers; the
   engine has no external dependencies beyond pthreads.

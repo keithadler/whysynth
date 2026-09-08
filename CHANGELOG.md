@@ -5,6 +5,8 @@
 The revival release. Same synth, new plugin formats, new build.
 
 ### Added
+- Audio Unit (`WhySynth.component`, macOS) built from the CLAP through
+  clap-wrapper, for Logic Pro and GarageBand. Passes `auval`.
 - CLAP plugin (`WhySynth.clap`): all 196 parameters plus polyphony, voice
   mode, glide mode and a Program parameter; state; `clap.preset-load` for
   patch files; CLAP and MIDI note dialects; parameter changes from a program
