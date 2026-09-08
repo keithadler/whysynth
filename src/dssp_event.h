@@ -29,8 +29,6 @@
 #include <stdlib.h>
 #include <pthread.h>
 
-#include <ladspa.h>
-#include <dssi.h>
 
 #include "whysynth_types.h"
 #include "whysynth.h"
@@ -50,54 +48,54 @@
 /* -PORTS- */
 struct _y_sosc_t
 {
-    LADSPA_Data    *mode;
-    LADSPA_Data    *waveform;
-    LADSPA_Data    *pitch;
-    LADSPA_Data    *detune;
-    LADSPA_Data    *pitch_mod_src;
-    LADSPA_Data    *pitch_mod_amt;
-    LADSPA_Data    *mparam1;        /* sync / grain lz / mod freq ratio / ws phase offset / slave freq / noise cutoff freq */
-    LADSPA_Data    *mparam2;        /* pulsewidth / wave sel bias / grain spread / mod freq detune / mod amount bias */
-    LADSPA_Data    *mmod_src;       /* (pw | mod index | slave freq ) mod source / grain envelope */          
-    LADSPA_Data    *mmod_amt;       /* (pw | mod index | slave freq ) mod amount / grain pitch distribution */
-    LADSPA_Data    *amp_mod_src;
-    LADSPA_Data    *amp_mod_amt;
-    LADSPA_Data    *level_a;
-    LADSPA_Data    *level_b;
+    float    *mode;
+    float    *waveform;
+    float    *pitch;
+    float    *detune;
+    float    *pitch_mod_src;
+    float    *pitch_mod_amt;
+    float    *mparam1;        /* sync / grain lz / mod freq ratio / ws phase offset / slave freq / noise cutoff freq */
+    float    *mparam2;        /* pulsewidth / wave sel bias / grain spread / mod freq detune / mod amount bias */
+    float    *mmod_src;       /* (pw | mod index | slave freq ) mod source / grain envelope */          
+    float    *mmod_amt;       /* (pw | mod index | slave freq ) mod amount / grain pitch distribution */
+    float    *amp_mod_src;
+    float    *amp_mod_amt;
+    float    *level_a;
+    float    *level_b;
     y_sampleset_t  *sampleset;
 };
 
 struct _y_svcf_t
 {
-    LADSPA_Data    *mode;
-    LADSPA_Data    *source;
-    LADSPA_Data    *frequency;
-    LADSPA_Data    *freq_mod_src;
-    LADSPA_Data    *freq_mod_amt;
-    LADSPA_Data    *qres;
-    LADSPA_Data    *mparam;
+    float    *mode;
+    float    *source;
+    float    *frequency;
+    float    *freq_mod_src;
+    float    *freq_mod_amt;
+    float    *qres;
+    float    *mparam;
 };
 
 struct _y_slfo_t
 {
-    LADSPA_Data    *frequency;
-    LADSPA_Data    *waveform;
-    LADSPA_Data    *delay;
-    LADSPA_Data    *amp_mod_src;
-    LADSPA_Data    *amp_mod_amt;
+    float    *frequency;
+    float    *waveform;
+    float    *delay;
+    float    *amp_mod_src;
+    float    *amp_mod_amt;
 };
 
 struct _y_seg_t
 {
-    LADSPA_Data    *mode;
-    LADSPA_Data    *shape[4];
-    LADSPA_Data    *time[4];
-    LADSPA_Data    *level[4];  /* level[3] always points to a 0.0f */
-    LADSPA_Data    *vel_level_sens;
-    LADSPA_Data    *vel_time_scale;
-    LADSPA_Data    *kbd_time_scale;
-    LADSPA_Data    *amp_mod_src;
-    LADSPA_Data    *amp_mod_amt;
+    float    *mode;
+    float    *shape[4];
+    float    *time[4];
+    float    *level[4];  /* level[3] always points to a 0.0f */
+    float    *vel_level_sens;
+    float    *vel_time_scale;
+    float    *kbd_time_scale;
+    float    *amp_mod_src;
+    float    *amp_mod_amt;
 };
 
 /*
@@ -105,8 +103,8 @@ struct _y_seg_t
  */
 struct _y_synth_t {
     /* output */
-    LADSPA_Data    *output_left;
-    LADSPA_Data    *output_right;
+    float    *output_left;
+    float    *output_right;
 
     float           sample_rate;
     float           deltat;            /* 1 / sample_rate */
@@ -135,6 +133,7 @@ struct _y_synth_t {
     int             program_cancel;    /* if true, cancel any playing notes on recept of program change */
     char           *project_dir;
 
+    grain_envelope_data_t *grain_envelope;   /* grain envelopes for this instance's sample rate */
     grain_t        *grains;                   /* array of all grains */
     grain_t        *free_grain_list;          /* list of available grains */
 
@@ -162,48 +161,48 @@ struct _y_synth_t {
                     osc4;
     y_svcf_t        vcf1,
                     vcf2;
-    LADSPA_Data    *busa_level;
-    LADSPA_Data    *busa_pan;
-    LADSPA_Data    *busb_level;
-    LADSPA_Data    *busb_pan;
-    LADSPA_Data    *vcf1_level;
-    LADSPA_Data    *vcf1_pan;
-    LADSPA_Data    *vcf2_level;
-    LADSPA_Data    *vcf2_pan;
-    LADSPA_Data    *volume;
-    LADSPA_Data    *effect_mode;
-    LADSPA_Data    *effect_param1;
-    LADSPA_Data    *effect_param2;
-    LADSPA_Data    *effect_param3;
-    LADSPA_Data    *effect_param4;
-    LADSPA_Data    *effect_param5;
-    LADSPA_Data    *effect_param6;
-    LADSPA_Data    *effect_mix;
-    LADSPA_Data    *glide_time;
-    LADSPA_Data    *bend_range;
+    float    *busa_level;
+    float    *busa_pan;
+    float    *busb_level;
+    float    *busb_pan;
+    float    *vcf1_level;
+    float    *vcf1_pan;
+    float    *vcf2_level;
+    float    *vcf2_pan;
+    float    *volume;
+    float    *effect_mode;
+    float    *effect_param1;
+    float    *effect_param2;
+    float    *effect_param3;
+    float    *effect_param4;
+    float    *effect_param5;
+    float    *effect_param6;
+    float    *effect_mix;
+    float    *glide_time;
+    float    *bend_range;
     y_slfo_t        glfo,
                     vlfo,
                     mlfo;
-    LADSPA_Data    *mlfo_phase_spread;
-    LADSPA_Data    *mlfo_random_freq;
+    float    *mlfo_phase_spread;
+    float    *mlfo_random_freq;
     y_seg_t         ego,
                     eg1,
                     eg2,
                     eg3,
                     eg4;
-    LADSPA_Data    *modmix_bias;
-    LADSPA_Data    *modmix_mod1_src;
-    LADSPA_Data    *modmix_mod1_amt;
-    LADSPA_Data    *modmix_mod2_src;
-    LADSPA_Data    *modmix_mod2_amt;
-    LADSPA_Data    *tuning;
+    float    *modmix_bias;
+    float    *modmix_mod1_src;
+    float    *modmix_mod1_amt;
+    float    *modmix_mod2_src;
+    float    *modmix_mod2_amt;
+    float    *tuning;
 
     /* reusable pre-mixdown voice buffers */
     float           vcf1_out[Y_CONTROL_PERIOD],
                     vcf2_out[Y_CONTROL_PERIOD];
 
     /* effects */
-    LADSPA_Data     voice_bus_l[Y_CONTROL_PERIOD],  /* pre-effect voice bus */
+    float     voice_bus_l[Y_CONTROL_PERIOD],  /* pre-effect voice bus */
                     voice_bus_r[Y_CONTROL_PERIOD];
     int             last_effect_mode;
     float           dc_block_r,
@@ -211,6 +210,7 @@ struct _y_synth_t {
                     dc_block_l_ynm1,
                     dc_block_r_xnm1,
                     dc_block_r_ynm1;
+    unsigned int    nonfinite_recoveries;     /* times the run loop had to reset after a non-finite sample */
     char           *effect_buffer;
     size_t          effect_buffer_allocation;
     size_t          effect_buffer_highwater;
@@ -225,10 +225,11 @@ struct _y_global_t {
     int                    instance_count;
     unsigned long          sample_rate;
 
-    grain_envelope_data_t *grain_envelope;    /* array of grain envelopes */
 
     pthread_mutex_t        sampleset_mutex;
-    int                    sampleset_pipe_fd[2];
+    pthread_mutex_t        signal_mutex;      /* worker thread wakeup */
+    pthread_cond_t         signal_cond;
+    int                    signal_pending;
     int                    worker_thread_started;
     volatile int           worker_thread_done;
     pthread_t              worker_thread;
@@ -264,17 +265,15 @@ void  y_synth_channel_pressure(y_synth_t *synth, signed int pressure);
 void  y_synth_pitch_bend(y_synth_t *synth, signed int value);
 void  y_synth_init_controls(y_synth_t *synth);
 void  y_synth_select_patch(y_synth_t *synth, unsigned long patch);
-int   y_synth_set_program_descriptor(y_synth_t *synth,
-                                     DSSI_Program_Descriptor *pd,
-                                     unsigned long patch);
+const char *y_synth_get_patch_name(y_synth_t *synth, unsigned long patch);
 char *y_synth_handle_load(y_synth_t *synth, const char *value);
 char *y_synth_handle_polyphony(y_synth_t *synth, const char *value);
 char *y_synth_handle_monophonic(y_synth_t *synth, const char *value);
 char *y_synth_handle_glide(y_synth_t *synth, const char *value);
 char *y_synth_handle_program_cancel(y_synth_t *synth, const char *value);
 char *y_synth_handle_project_dir(y_synth_t *synth, const char *value);
-void  y_synth_render_voices(y_synth_t *synth, LADSPA_Data *out_left,
-                                 LADSPA_Data *out_right, unsigned long sample_count,
+void  y_synth_render_voices(y_synth_t *synth, float *out_left,
+                                 float *out_right, unsigned long sample_count,
                                  int do_control_update);
 
 /* these come right out of alsa/asoundef.h */

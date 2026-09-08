@@ -1,3 +1,8 @@
+2026: Keith Adler <keith.adler@icloud.com> ported WhySynth to CLAP and LV2,
+replaced the autotools build with CMake and FFTW with KISS FFT, separated
+the engine from the plugin API, added whysynth-render, tests and CI. See
+CHANGELOG.md.
+
                                    WhySynth
                                    ========
                     A software synthesizer plugin  for the

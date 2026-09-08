@@ -40,7 +40,6 @@
 
 #include <math.h>
 
-#include <ladspa.h>
 
 #include "whysynth_types.h"
 #include "dssp_event.h"
@@ -199,7 +198,7 @@ effect_screverb_setup(y_synth_t *synth)
 
 void
 effect_screverb_process(y_synth_t *synth, unsigned long sample_count,
-                        LADSPA_Data *out_left, LADSPA_Data *out_right)
+                        float *out_left, float *out_right)
 {
     SC_REVERB *p = (SC_REVERB *)synth->effect_buffer;
     float      wet, dry;

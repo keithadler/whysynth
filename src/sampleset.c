@@ -24,11 +24,8 @@
 #define _DEFAULT_SOURCE 1
 #define _ISOC99_SOURCE  1
 
-#include <unistd.h>
 #include <string.h>
 #include <errno.h>
-#include <fcntl.h>
-#include <sys/poll.h>
 #include <math.h>
 #include <pthread.h>
 
@@ -42,63 +39,28 @@
 
 /* ==== utility routines ==== */
 
+/* The worker thread used to be woken through a pipe and poll(). A condition
+ * variable does the same job on every platform, including Windows through
+ * winpthreads. The pending flag makes a signal sent before the worker is
+ * waiting stick, so no wakeup is lost. */
+
 static inline void
 signal_worker_thread(void)
 {
-    char c;
-
-    if (write(global.sampleset_pipe_fd[1], &c, 1) != 1) {
-        YDB_MESSAGE(-1, " sampleset signal_worker_thread ERROR: cannot write pipe: %s\n", strerror(errno));
-    }
+    pthread_mutex_lock(&global.signal_mutex);
+    global.signal_pending = 1;
+    pthread_cond_signal(&global.signal_cond);
+    pthread_mutex_unlock(&global.signal_mutex);
 }
 
 static inline void
 wait_for_signal(void)
 {
-    struct pollfd pfd;
-
-    pfd.fd = global.sampleset_pipe_fd[0];
-    pfd.events = POLLIN|POLLHUP|POLLERR;
-
-    while (1) {
-        if (poll(&pfd, 1, -1) >= 0)
-            break;
-        if (errno == EINTR)
-            continue;  /* gdb at work, perhaps */
-        YDB_MESSAGE(-1, " sampleset wait_for_signal ERROR: poll failed: %s\n", strerror(errno));
-        sleep(1);
-        return; /* bail */
-    }
-
-    if (pfd.revents & ~POLLIN) {
-        YDB_MESSAGE(-1, " sampleset wait_for_signal ERROR: poll returned error\n");
-        sleep(1);
-        return; /* bail */
-    }
-
-    if (pfd.revents & POLLIN) {
-        /* empty the pipe of all current requests */
-        char buf[16];
-        while (1) {
-            size_t nread = read (global.sampleset_pipe_fd[0], &buf, sizeof (buf));
-
-            if (nread > 0) {
-                if ((size_t) nread < sizeof (buf)) {
-                    break;
-                } else {
-                    continue;
-                }
-            } else if (nread == 0) {
-                    break;
-            } else if (errno == EAGAIN) {
-                    break;
-            } else {
-                YDB_MESSAGE(-1, " sampleset wait_for_signal: ERROR reading from signal pipe\n");
-                sleep(1);
-                return; /* bail */
-            }
-        }
-    }
+    pthread_mutex_lock(&global.signal_mutex);
+    while (!global.signal_pending)
+        pthread_cond_wait(&global.signal_cond, &global.signal_mutex);
+    global.signal_pending = 0;
+    pthread_mutex_unlock(&global.signal_mutex);
 }
 
 void
@@ -143,6 +105,7 @@ sampleset_find_sample(y_sampleset_t *ss, int index)
 
         for (s = global.active_sample_list; s; s = s->next) {
             if (s->mode == Y_OSCILLATOR_MODE_PADSYNTH &&
+                s->sample_rate == ss->sample_rate &&
                 s->source == ss->source[index] &&
                 s->max_key == ss->max_key[index] &&
                 s->param1 == ss->param1 &&
@@ -205,8 +168,9 @@ int
 sampleset_init(void)
 {
     pthread_mutex_init(&global.sampleset_mutex, NULL);
-    global.sampleset_pipe_fd[0] = -1;
-    global.sampleset_pipe_fd[1] = -1;
+    pthread_mutex_init(&global.signal_mutex, NULL);
+    pthread_cond_init(&global.signal_cond, NULL);
+    global.signal_pending = 0;
     global.worker_thread_started = 0;
     global.worker_thread_done = 0;
     global.samplesets_allocated = 0;
@@ -219,27 +183,10 @@ sampleset_init(void)
     if (!padsynth_init())
         return 0;
 
-    /* open unnamed pipe for interthread signaling */
-    if (pipe(global.sampleset_pipe_fd)) {
-        YDB_MESSAGE(-1, " sampleset_init: could not open signal pipe: %s\n", strerror(errno));
-        padsynth_fini();
-        return 0;
-    }
-    if (fcntl(global.sampleset_pipe_fd[0], F_SETFL, O_NONBLOCK) ||
-        fcntl(global.sampleset_pipe_fd[1], F_SETFL, O_NONBLOCK)) {
-        YDB_MESSAGE(-1, " sampleset_init: could not make signal pipe nonblocking: %s\n", strerror(errno));
-        close(global.sampleset_pipe_fd[0]);
-        close(global.sampleset_pipe_fd[1]);
-        padsynth_fini();
-        return 0;
-    }
-
     /* create non-realtime worker thread */
     /* -FIX- optionally set this nice or low-priority SCHED_FIFO or SCHED_RR? */
     if (pthread_create(&global.worker_thread, NULL, sampleset_worker_function, NULL)) {
         YDB_MESSAGE(-1, " sampleset_init: could not create worker thread: %s\n", strerror(errno));
-        close(global.sampleset_pipe_fd[0]);
-        close(global.sampleset_pipe_fd[1]);
         padsynth_fini();
         return 0;
     }
@@ -308,9 +255,8 @@ sampleset_fini(void)
         pthread_join(global.worker_thread, NULL);
     }
 
-    /* close interthread signaling pipe */
-    if (global.sampleset_pipe_fd[0] >= 0) close(global.sampleset_pipe_fd[0]);
-    if (global.sampleset_pipe_fd[1] >= 0) close(global.sampleset_pipe_fd[1]);
+    pthread_cond_destroy(&global.signal_cond);
+    pthread_mutex_destroy(&global.signal_mutex);
 
     /* free all sampleset resources */
     while (global.active_sampleset_list) {
@@ -480,6 +426,7 @@ sampleset_worker_function(void *arg)
 
                 sample->ref_count = 0;
                 sample->mode     = render_ss->mode;
+                sample->sample_rate = render_ss->sample_rate;
                 sample->source   = render_ss->source[render_index];
                 sample->max_key  = render_ss->max_key[render_index];
                 sample->param1   = render_ss->param1;
@@ -554,7 +501,7 @@ sampleset_check_oscillator(y_synth_t *synth, y_sosc_t *sosc,
                     *changed = 1;
                     /* YDB_MESSAGE(YDB_SAMPLE, " sampleset_check_oscillator: change on oscillator %p\n", sosc); */
                     sampleset_release(sosc->sampleset);
-                    sosc->sampleset = sampleset_setup(sosc, mode, waveform,
+                    sosc->sampleset = sampleset_setup(sosc, (unsigned long)lrintf(synth->sample_rate), mode, waveform,
                                                       param1, param2, param3, param4);
                 }
             }
@@ -562,7 +509,7 @@ sampleset_check_oscillator(y_synth_t *synth, y_sosc_t *sosc,
             if (*changed || !pthread_mutex_trylock(&global.sampleset_mutex)) {
                 *changed = 1;
                 /* YDB_MESSAGE(YDB_SAMPLE, " sampleset_check_oscillator: new for oscillator %p\n", sosc); */
-                sosc->sampleset = sampleset_setup(sosc, mode, waveform,
+                sosc->sampleset = sampleset_setup(sosc, (unsigned long)lrintf(synth->sample_rate), mode, waveform,
                                                   param1, param2, param3, param4);
             }
         }
@@ -603,13 +550,13 @@ sampleset_check_oscillators(y_synth_t *synth)
  * The sampleset mutex must be locked before calling this.
  */
 y_sampleset_t *
-sampleset_setup(y_sosc_t *sosc, int mode, int waveform, int param1, int param2,
+sampleset_setup(y_sosc_t *sosc, unsigned long sample_rate, int mode, int waveform, int param1, int param2,
                 int param3, int param4)
 {
     y_sampleset_t *ss;
 
     for (ss = global.active_sampleset_list; ss; ss = ss->next) {
-        if (mode == ss->mode && waveform == ss->waveform &&
+        if (mode == ss->mode && waveform == ss->waveform && sample_rate == ss->sample_rate &&
             param1 == ss->param1 && param2 == ss->param2 &&
             param3 == ss->param3 && param4 == ss->param4) {
             ss->ref_count++;
@@ -632,6 +579,7 @@ sampleset_setup(y_sosc_t *sosc, int mode, int waveform, int param1, int param2,
     ss->rendered = 0;
     ss->set_up = 0;
 
+    ss->sample_rate = sample_rate;
     ss->mode     = mode;
     ss->waveform = waveform;
     ss->param1   = param1;

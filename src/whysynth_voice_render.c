@@ -41,7 +41,6 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include <ladspa.h>
 
 #include "whysynth.h"
 #include "dssp_event.h"
@@ -186,7 +185,7 @@ pan_cv_to_amplitude(float cv)
  * y_voice_waveform_index
  */
 static inline int
-y_voice_waveform_index(LADSPA_Data *p)
+y_voice_waveform_index(float *p)
 {
     int i = lrintf(*p);
 
@@ -224,8 +223,18 @@ y_voice_setup_lfo(y_synth_t *synth, y_slfo_t *slfo, struct vlfo *vlfo,
     int mod = y_voice_mod_index(slfo->amp_mod_src),
         waveform = y_voice_waveform_index(slfo->waveform);
     float mult0, mult1;
+    /* right after activation no control period has begun and control_remains
+     * is zero; a slope over zero samples is infinite and poisons every
+     * modulator downstream, so use a whole period instead */
+    float control_remains_f = synth->control_remains > 0 ?
+                              (float)synth->control_remains : (float)Y_CONTROL_PERIOD;
     struct vmod *bpmod = destmods,
                 *upmod = destmods + 1;
+
+    /* the mode LFOs start at multiples of the phase spread, which can put
+     * phase past 1.0; the wavetable lookup below needs it in [0, 1) */
+    phase = fmodf(phase, 1.0f);
+    if (phase < 0.0f) phase += 1.0f;
 
     vlfo->freqmult = random_float(1.0f - randfreq * 0.5f, randfreq);
     vlfo->pos = phase + *(slfo->frequency) * vlfo->freqmult / synth->control_rate;
@@ -245,10 +254,10 @@ y_voice_setup_lfo(y_synth_t *synth, y_slfo_t *slfo, struct vlfo *vlfo,
 
         bpmod->value = y_voice_lfo_get_value(phase, waveform) * mult0;
         bpmod->next_value = y_voice_lfo_get_value(vlfo->pos, waveform) * mult1;
-        bpmod->delta = (bpmod->next_value - bpmod->value) / (float)synth->control_remains;
+        bpmod->delta = (bpmod->next_value - bpmod->value) / control_remains_f;
         upmod->value = (bpmod->value + mult0) * 0.5f;
         upmod->next_value = (bpmod->next_value + mult1) * 0.5f;
-        upmod->delta = (upmod->next_value - upmod->value) / (float)synth->control_remains;
+        upmod->delta = (upmod->next_value - upmod->value) / control_remains_f;
 
     } else {
 
@@ -266,10 +275,10 @@ y_voice_setup_lfo(y_synth_t *synth, y_slfo_t *slfo, struct vlfo *vlfo,
 
         bpmod->value = 0.0f;
         bpmod->next_value = y_voice_lfo_get_value(vlfo->pos, waveform) * mult1;
-        bpmod->delta = bpmod->next_value / (float)synth->control_remains;
+        bpmod->delta = bpmod->next_value / control_remains_f;
         upmod->value = 0.0f;
         upmod->next_value = (bpmod->next_value + mult1) * 0.5f;
-        upmod->delta = upmod->next_value / (float)synth->control_remains;
+        upmod->delta = upmod->next_value / control_remains_f;
     }
 };
 
@@ -653,7 +662,7 @@ fm_wave2sine(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         cpos += w;
 
         if (cpos >= 1.0f) {
-            cpos -= 1.0f;
+            cpos -= floorf(cpos);
             voice->osc_sync[sample] = cpos / w;
         } else {
             voice->osc_sync[sample] = -1.0f;
@@ -769,7 +778,7 @@ fm_sine2wave(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         cpos += w;
 
         if (cpos >= 1.0f) {
-            cpos -= 1.0f;
+            cpos -= floorf(cpos);
             voice->osc_sync[sample] = cpos / w;
         } else {
             voice->osc_sync[sample] = -1.0f;
@@ -883,12 +892,12 @@ fm_wave2lf(unsigned long sample_count, y_synth_t *synth, y_sosc_t *sosc,
 
         cpos += lfw;
         if (cpos >= 1.0f) {
-            cpos -= 1.0f;
+            cpos -= floorf(cpos);
         }
 
         mpos += w;
         if (mpos >= 1.0f) {
-            mpos -= 1.0f;
+            mpos -= floorf(mpos);
             voice->osc_sync[sample] = mpos / w;
         } else {
             voice->osc_sync[sample] = -1.0f;
@@ -993,7 +1002,7 @@ waveshaper(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         pos += w;
 
         if (pos >= 1.0f) {
-            pos -= 1.0f;
+            pos -= floorf(pos);
             voice->osc_sync[sample] = pos / w;
         } else {
             voice->osc_sync[sample] = -1.0f;
@@ -1059,7 +1068,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
       default:
       case 0:   /* White */
         for (sample = 0; sample < sample_count; sample++) {
-            f = ((float)random() / (float)RAND_MAX) - 0.5f;
+            f = ((float)rand() / (float)RAND_MAX) - 0.5f;
             voice->osc_bus_a[index]   += level_a * f;
             voice->osc_bus_b[index++] += level_b * f;
             /* noise oscillators do not export sync */
@@ -1074,7 +1083,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         c1 = vosc->f1;
         c2 = vosc->f2;
         for (sample = 0; sample < sample_count; sample++) {
-            f = ((float)random() / (float)RAND_MAX) - 0.5f;
+            f = ((float)rand() / (float)RAND_MAX) - 0.5f;
             c0 = c0 * 0.99765 + f * 0.0990460;
             c1 = c1 * 0.96300 + f * 0.2965164;
             c2 = c2 * 0.57000 + f * 1.0526913;
@@ -1107,7 +1116,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         for (sample = 0; sample < sample_count; sample++) {
 
             c1 = c1 + f * c0;
-            c2 = (((float)random() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
+            c2 = (((float)rand() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
             c0 = f * c2 + c0;
 
             voice->osc_bus_a[index]   += level_a * c1;
@@ -1135,7 +1144,7 @@ noise(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         for (sample = 0; sample < sample_count; sample++) {
 
             c1 = c1 + f * c0;
-            c2 = (((float)random() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
+            c2 = (((float)rand() / (float)RAND_MAX) - 0.5f) - c1 - q * c0;
             c0 = f * c2 + c0;
 
             voice->osc_bus_a[index]   += level_a * c0;
@@ -1225,7 +1234,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                 pos += w;
 
                 if (pos >= 1.0f) {
-                    pos -= 1.0f;
+                    pos -= floorf(pos);
                     voice->osc_sync[sample] = pos / w;
                 } else {
                     voice->osc_sync[sample] = -1.0f;
@@ -1271,7 +1280,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                 pos += w;
 
                 if (pos >= 1.0f) {
-                    pos -= 1.0f;
+                    pos -= floorf(pos);
                     voice->osc_sync[sample] = pos / w;
                 } else {
                     voice->osc_sync[sample] = -1.0f;
@@ -1317,7 +1326,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                 pos += w;
 
                 if (pos >= 1.0f) {
-                    pos -= 1.0f;
+                    pos -= floorf(pos);
                     voice->osc_sync[sample] = pos / w;
                 } else {
                     voice->osc_sync[sample] = -1.0f;
@@ -1357,7 +1366,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                 pos += w;
 
                 if (pos >= 1.0f) {
-                    pos -= 1.0f;
+                    pos -= floorf(pos);
                     voice->osc_sync[sample] = pos / w;
                 } else {
                     voice->osc_sync[sample] = -1.0f;
@@ -1397,7 +1406,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                 pos += w;
 
                 if (pos >= 1.0f) {
-                    pos -= 1.0f;
+                    pos -= floorf(pos);
                     voice->osc_sync[sample] = pos / w;
                 } else {
                     voice->osc_sync[sample] = -1.0f;
@@ -1440,7 +1449,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                 pos += w;
 
                 if (pos >= 1.0f) {
-                    pos -= 1.0f;
+                    pos -= floorf(pos);
                     voice->osc_sync[sample] = pos / w;
                 } else {
                     voice->osc_sync[sample] = -1.0f;
@@ -1603,7 +1612,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                     level_b += level_b_delta;
 
                     if (pos >= 1.0f) {
-                        pos -= 1.0f;
+                        pos -= floorf(pos);
                         voice->osc_sync[sample] = pos / w;
                         cycle ^= 1;
                         sample++;
@@ -1645,7 +1654,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                     level_b += level_b_delta;
 
                     if (pos >= 1.0f) {
-                        pos -= 1.0f;
+                        pos -= floorf(pos);
                         voice->osc_sync[sample] = pos / w;
                         cycle ^= 1;
                         sample++;
@@ -1683,7 +1692,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                     level_b += level_b_delta;
 
                     if (pos >= 1.0f) {
-                        pos -= 1.0f;
+                        pos -= floorf(pos);
                         voice->osc_sync[sample] = pos / w;
                         cycle ^= 1;
                         sample++;
@@ -1721,7 +1730,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                     level_b += level_b_delta;
 
                     if (pos >= 1.0f) {
-                        pos -= 1.0f;
+                        pos -= floorf(pos);
                         voice->osc_sync[sample] = pos / w;
                         cycle ^= 1;
                         sample++;
@@ -1762,7 +1771,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                     level_b += level_b_delta;
 
                     if (pos >= 1.0f) {
-                        pos -= 1.0f;
+                        pos -= floorf(pos);
                         voice->osc_sync[sample] = pos / w;
                         cycle ^= 1;
                         sample++;
@@ -1803,7 +1812,7 @@ phase_distortion(unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
                     level_b += level_b_delta;
 
                     if (pos >= 1.0f) {
-                        pos -= 1.0f;
+                        pos -= floorf(pos);
                         voice->osc_sync[sample] = pos / w;
                         cycle ^= 1;
                         sample++;
@@ -1854,10 +1863,10 @@ wt_chorus(unsigned long sample_count, y_synth_t *synth, y_sosc_t *sosc,
         vosc->last_mode = vosc->mode;
         vosc->last_waveform = -1;
         pos2 = random_float(0.0f, 1.0f);
-        pos0 = pos2 + 0.8f; if (pos0 >= 1.0f) pos0 -= 1.0f;
-        pos1 = pos2 + 0.1f; if (pos1 >= 1.0f) pos1 -= 1.0f;
-        pos3 = pos2 + 0.5f; if (pos3 >= 1.0f) pos3 -= 1.0f;
-        pos4 = pos2 + 0.2f; if (pos4 >= 1.0f) pos4 -= 1.0f;
+        pos0 = pos2 + 0.8f; if (pos0 >= 1.0f) pos0 -= floorf(pos0);
+        pos1 = pos2 + 0.1f; if (pos1 >= 1.0f) pos1 -= floorf(pos1);
+        pos3 = pos2 + 0.5f; if (pos3 >= 1.0f) pos3 -= floorf(pos3);
+        pos4 = pos2 + 0.2f; if (pos4 >= 1.0f) pos4 -= floorf(pos4);
     }
     i = voice->key + lrintf(*(sosc->pitch) + *(sosc->mparam2) * WAVETABLE_SELECT_BIAS_RANGE);
     if (vosc->waveform != vosc->last_waveform ||
@@ -1909,16 +1918,16 @@ wt_chorus(unsigned long sample_count, y_synth_t *synth, y_sosc_t *sosc,
         pos2 += w;
         pos3 += w * wm3;
         pos4 += w * wm4;
-        if (pos0 >= 1.0f) pos0 -= 1.0f;
-        if (pos1 >= 1.0f) pos1 -= 1.0f;
+        if (pos0 >= 1.0f) pos0 -= floorf(pos0);
+        if (pos1 >= 1.0f) pos1 -= floorf(pos1);
         if (pos2 >= 1.0f) {
-            pos2 -= 1.0f;
+            pos2 -= floorf(pos2);
             voice->osc_sync[sample] = pos2 / w;
         } else {
             voice->osc_sync[sample] = -1.0f;
         }
-        if (pos3 >= 1.0f) pos3 -= 1.0f;
-        if (pos4 >= 1.0f) pos4 -= 1.0f;
+        if (pos3 >= 1.0f) pos3 -= floorf(pos3);
+        if (pos4 >= 1.0f) pos4 -= floorf(pos4);
 
         f = pos0 * (float)WAVETABLE_POINTS;
         i = lrintf(f - 0.5f);
@@ -1975,6 +1984,10 @@ oscillator(unsigned long sample_count, y_synth_t *synth, y_sosc_t *sosc,
            y_voice_t *voice, struct vosc *vosc, int index, float w)
 
 {
+    /* nothing above Nyquist is representable, and an increment past half a
+     * cycle per sample defeats the oscillators' assumptions; also catches NaN */
+    if (!(w <= 0.5f)) w = 0.5f;
+
     switch (vosc->mode) {
       default:
       case 0: /* disabled */
@@ -2594,7 +2607,7 @@ vcf_resonz(unsigned long sample_count, y_svcf_t *svcf, y_voice_t *voice,
  */
 void
 y_voice_render(y_synth_t *synth, y_voice_t *voice,
-                    LADSPA_Data *out_left, LADSPA_Data *out_right,
+                    float *out_left, float *out_right,
                     unsigned long sample_count, int do_control_update)
 {
     unsigned long sample;

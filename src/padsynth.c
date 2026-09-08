@@ -30,13 +30,9 @@
 #include <string.h>
 #include <math.h>
 
-#ifdef FFTW_VERSION_2
-#include <rfftw.h>
+#include "yfft.h"
 #define fftwf_malloc(x) malloc(x)
 #define fftwf_free(x) free(x)
-#else
-#include <fftw3.h>
-#endif
 
 #include "whysynth_types.h"
 #include "whysynth.h"
@@ -63,15 +59,7 @@ padsynth_init(void)
     }
 
     /* create input FFTW plan */
-#ifdef FFTW_VERSION_2
-    global.padsynth_fft_plan  = (void *)rfftw_create_plan(WAVETABLE_POINTS,
-                                                          FFTW_REAL_TO_COMPLEX, FFTW_ESTIMATE);
-#else
-    global.padsynth_fft_plan  = (void *)fftwf_plan_r2r_1d(WAVETABLE_POINTS,
-                                                          global.padsynth_inbuf,
-                                                          global.padsynth_inbuf,
-                                                          FFTW_R2HC, FFTW_ESTIMATE);
-#endif
+    global.padsynth_fft_plan  = (void *)yfft_plan_r2hc(WAVETABLE_POINTS);
     if (!global.padsynth_fft_plan) {
         padsynth_fini();
         return 0;
@@ -85,13 +73,8 @@ padsynth_fini(void)
 {
     padsynth_free_temp();
 
-#ifdef FFTW_VERSION_2
-    if (global.padsynth_fft_plan)  rfftw_destroy_plan(global.padsynth_fft_plan);
-    if (global.padsynth_ifft_plan) rfftw_destroy_plan(global.padsynth_ifft_plan);
-#else
-    if (global.padsynth_fft_plan)  fftwf_destroy_plan(global.padsynth_fft_plan);
-    if (global.padsynth_ifft_plan) fftwf_destroy_plan(global.padsynth_ifft_plan);
-#endif
+    if (global.padsynth_fft_plan)  yfft_destroy((yfft_plan_t *)global.padsynth_fft_plan);
+    if (global.padsynth_ifft_plan) yfft_destroy((yfft_plan_t *)global.padsynth_ifft_plan);
     if (global.padsynth_inbuf)     fftwf_free(global.padsynth_inbuf);
 }
 
@@ -227,7 +210,7 @@ padsynth_render(y_sample_t *sample)
     }
 
     /* calculate the output table size */
-    i = lrintf((float)global.sample_rate * 2.5f);  /* at least 2.5 seconds long -FIX- this should be configurable */
+    i = lrintf((float)sample->sample_rate * 2.5f);  /* at least 2.5 seconds long -FIX- this should be configurable */
     N = WAVETABLE_POINTS * 2;
     while (N < i) {
         if (N * 5 / 4 >= i) { N = N * 5 / 4; break; }
@@ -239,11 +222,7 @@ padsynth_render(y_sample_t *sample)
     if (global.padsynth_table_size != N) {
         padsynth_free_temp();
         if (global.padsynth_ifft_plan) {
-#ifdef FFTW_VERSION_2
-            rfftw_destroy_plan(global.padsynth_ifft_plan);
-#else
-            fftwf_destroy_plan(global.padsynth_ifft_plan);
-#endif
+            yfft_destroy((yfft_plan_t *)global.padsynth_ifft_plan);
             global.padsynth_ifft_plan = NULL;
         }
         global.padsynth_table_size = N;
@@ -257,14 +236,7 @@ padsynth_render(y_sample_t *sample)
     outfreqs = global.padsynth_outfreqs;
     smp = global.padsynth_outsamples;
     if (!global.padsynth_ifft_plan)
-        global.padsynth_ifft_plan =
-#ifdef FFTW_VERSION_2
-            (void *)rfftw_create_plan(N, FFTW_COMPLEX_TO_REAL, FFTW_ESTIMATE);
-#else
-            (void *)fftwf_plan_r2r_1d(N, global.padsynth_outfreqs,
-                                      global.padsynth_outsamples,
-                                      FFTW_HC2R, FFTW_ESTIMATE);
-#endif
+        global.padsynth_ifft_plan = (void *)yfft_plan_hc2r(N);
     if (!global.padsynth_ifft_plan)
         return 0;
 
@@ -297,11 +269,7 @@ padsynth_render(y_sample_t *sample)
     YDB_MESSAGE(YDB_SAMPLE, " padsynth_render: analyzing input table\n");
     for (i = 0; i < WAVETABLE_POINTS; i++)
         inbuf[i] = (float)sample->source[i] / 32768.0f;
-#ifdef FFTW_VERSION_2
-    rfftw_one((rfftw_plan)global.padsynth_fft_plan, inbuf, inbuf);
-#else
-    fftwf_execute((const fftwf_plan)global.padsynth_fft_plan);  /* transform inbuf in-place */
-#endif
+    yfft_execute_r2hc((yfft_plan_t *)global.padsynth_fft_plan, inbuf);  /* transform inbuf in-place */
     max = 0.0f;
     if (damping > -1e-3f) { /* no damping */
         for (i = 1; i < WAVETABLE_POINTS / 2; i++) {
@@ -341,7 +309,7 @@ padsynth_render(y_sample_t *sample)
      * so we find a new 'samplerate' that will result in fi * N being exactly 778:
      *    samplerate = f * N / fc = 44076.8
      */
-    fc0 = lrintf(f / (float)global.sample_rate * (float)N);
+    fc0 = lrintf(f / (float)sample->sample_rate * (float)N);
     sample->period = (float)N / (float)fc0;  /* frames per period */
     samplerate = f * sample->period;
     /* YDB_MESSAGE(YDB_SAMPLE, " padsynth_render: size = %d, f = %f, fc0 = %d, period = %f\n", N, f, fc0, sample->period); */
@@ -359,7 +327,7 @@ padsynth_render(y_sample_t *sample)
      * upper partial limit:
      *   ((global.sample_rate / 2) * samplerate / global.sample_rate) / samplerate * N / shift
      */
-    plimit_low = lrintf(20.0f / (float)global.sample_rate * (float)N);
+    plimit_low = lrintf(20.0f / (float)sample->sample_rate * (float)N);
     /* plimit_high = lrintf(20000.0f / (float)global.sample_rate * (float)N / 1.25992f); */
     plimit_high = lrintf((float)N / 2 / 1.25992f);
     /* YDB_MESSAGE(YDB_SAMPLE, " padsynth_render: nominal rate = %f, plimit low = %d, plimit high = %d\n", samplerate, plimit_low, plimit_high); */
@@ -418,6 +386,9 @@ padsynth_render(y_sample_t *sample)
     };
     if (rndlim_low > rndlim_high) {  /* somehow, outfreqs is still empty */
         YDB_MESSAGE(YDB_SAMPLE, " padsynth_render WARNING: empty output table (key limit = %d)\n", sample->max_key);
+        /* at very low sample rates the fundamental can land past the table */
+        if (fc0 < 1) fc0 = 1;
+        if (fc0 > N / 2 - 1) fc0 = N / 2 - 1;
         rndlim_low = rndlim_high = fc0;
         outfreqs[fc0] = 1.0f;
     }
@@ -434,14 +405,7 @@ padsynth_render(y_sample_t *sample)
 
     /* inverse FFT back to time domain */
     YDB_MESSAGE(YDB_SAMPLE, " padsynth_render: performing inverse FFT\n");
-#ifdef FFTW_VERSION_2
-    rfftw_one((rfftw_plan)global.padsynth_ifft_plan, outfreqs, smp);
-#else
-    /* remember restrictions on FFTW3 'guru' execute: buffers must be the same
-     * sizes, same in-place-ness or out-of-place-ness, and same alignment as
-     * when plan was created. */
-    fftwf_execute_r2r((const fftwf_plan)global.padsynth_ifft_plan, outfreqs, smp);
-#endif
+    yfft_execute_hc2r((yfft_plan_t *)global.padsynth_ifft_plan, outfreqs, smp);
 
     /* normalize and convert output data */
     YDB_MESSAGE(YDB_SAMPLE, " padsynth_render: normalizing output\n");
@@ -604,10 +568,14 @@ padsynth_oscillator(unsigned long sample_count, y_sosc_t *sosc,
         for (sample = 0; sample < sample_count; sample++) {
 
             pos += w;
-            if (pos >= 1.0f) pos -= 1.0f;
+            /* w can exceed a whole cycle per sample when the note is above
+             * the sample rate, so wrap fully rather than subtract once */
+            pos -= floorf(pos);
 
             f = pos * (float)SINETABLE_POINTS;
             i = lrintf(f - 0.5f);
+            if (i < -4) i = -4;
+            if (i > SINETABLE_POINTS + 2) i = SINETABLE_POINTS + 2;
             f -= (float)i;
             f = sine_wave[i + 4] + (sine_wave[i + 5] - sine_wave[i + 4]) * f;
             voice->osc_bus_a[index]   += level_a * f;
@@ -648,7 +616,7 @@ padsynth_oscillator(unsigned long sample_count, y_sosc_t *sosc,
             level_b += level_b_delta;
 
             pos += w * period;
-            if (pos >= length) pos -= length;
+            if (pos >= length) pos = fmod(pos, length);
             /* sampleset oscillators do not export sync */
         }
 
@@ -695,8 +663,8 @@ padsynth_oscillator(unsigned long sample_count, y_sosc_t *sosc,
 
             pos0 += w * period0;
             pos1 += w * period1;
-            if (pos0 >= length0) pos0 -= length0;
-            if (pos1 >= length1) pos1 -= length1;
+            if (pos0 >= length0) pos0 = fmod(pos0, length0);
+            if (pos1 >= length1) pos1 = fmod(pos1, length1);
             /* sampleset oscillators do not export sync */
         }
 
@@ -721,7 +689,7 @@ padsynth_oscillator(unsigned long sample_count, y_sosc_t *sosc,
          * it an multiple of the period length to minimize phase cancellation
          * when summed to mono */
         posr = posl + rint(length / 2.0 / (double)period) * (double)period;
-        if (posr >= length) posr -= length;
+        if (posr >= length) posr = fmod(posr, length);
 
         for (sample = 0; sample < sample_count; sample++) {
 
@@ -742,9 +710,9 @@ padsynth_oscillator(unsigned long sample_count, y_sosc_t *sosc,
             level_b += level_b_delta;
 
             posl += w * period;
-            if (posl >= length) posl -= length;
+            if (posl >= length) posl = fmod(posl, length);
             posr += w * period;
-            if (posr >= length) posr -= length;
+            if (posr >= length) posr = fmod(posr, length);
             /* sampleset oscillators do not export sync */
         }
 
@@ -772,8 +740,8 @@ padsynth_oscillator(unsigned long sample_count, y_sosc_t *sosc,
         if (posl1 >= length1) posl1 = 0.0;
         posr0 = posl0 + rint(length0 / 2.0 / (double)period0) * (double)period0;
         posr1 = posl1 + rint(length1 / 2.0 / (double)period1) * (double)period1;
-        if (posr0 >= length0) posr0 -= length0;
-        if (posr1 >= length1) posr1 -= length1;
+        if (posr0 >= length0) posr0 = fmod(posr0, length0);
+        if (posr1 >= length1) posr1 = fmod(posr1, length1);
 
         for (sample = 0; sample < sample_count; sample++) {
 
@@ -805,10 +773,10 @@ padsynth_oscillator(unsigned long sample_count, y_sosc_t *sosc,
             posr0 += w * period0;
             posl1 += w * period1;
             posr1 += w * period1;
-            if (posl0 >= length0) posl0 -= length0;
-            if (posr0 >= length0) posr0 -= length0;
-            if (posl1 >= length1) posl1 -= length1;
-            if (posr1 >= length1) posr1 -= length1;
+            if (posl0 >= length0) posl0 = fmod(posl0, length0);
+            if (posr0 >= length0) posr0 = fmod(posr0, length0);
+            if (posl1 >= length1) posl1 = fmod(posl1, length1);
+            if (posr1 >= length1) posr1 = fmod(posr1, length1);
             /* sampleset oscillators do not export sync */
         }
 

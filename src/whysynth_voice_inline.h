@@ -23,7 +23,7 @@ static inline float
 random_float(float lower_bound, float range)
 {
     /* -FIX- bit-shifting is not the most efficient way to generate noise on some platforms....? */
-    return lower_bound + range * ((float)random() / (float)RAND_MAX);
+    return lower_bound + range * ((float)rand() / (float)RAND_MAX);
 }
 
 /*
@@ -62,7 +62,7 @@ pitch_to_frequency(float pitch)
  * y_voice_mod_index
  */
 static inline int
-y_voice_mod_index(LADSPA_Data *p)
+y_voice_mod_index(float *p)
 {
     int i = lrintf(*p);
 

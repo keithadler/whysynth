@@ -1,0 +1,76 @@
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: linux-x86_64
+            os: ubuntu-latest
+          - name: macos-universal
+            os: macos-latest
+          - name: windows-x86_64
+            os: windows-latest
+    defaults:
+      run:
+        shell: ${{ matrix.os == 'windows-latest' && 'msys2 {0}' || 'bash' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up MSYS2
+        if: matrix.os == 'windows-latest'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: MINGW64
+          update: true
+          install: >-
+            mingw-w64-x86_64-toolchain
+            mingw-w64-x86_64-cmake
+            mingw-w64-x86_64-ninja
+            git
+            zip
+
+      - name: Configure
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DHEXTER_BUILD_DSSI=OFF ${{ matrix.os == 'windows-latest' && '-G Ninja' || '' }} ${{ matrix.os == 'macos-latest' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
+
+      - name: Build
+        run: cmake --build build --config Release --parallel
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+      - name: Package
+        run: |
+          VERSION=${GITHUB_REF_NAME#v}
+          PKG=whysynth-$VERSION-${{ matrix.name }}
+          mkdir -p $PKG/patches
+          cp -R build/WhySynth.clap $PKG/
+          cp -R build/lv2/whysynth.lv2 $PKG/
+          cp build/whysynth-render* $PKG/ 2>/dev/null || true
+          cp extra/*.WhySynth extra/COPYING-patches $PKG/patches/
+          cp README.md CHANGELOG.md COPYING AUTHORS $PKG/
+          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+            tar czf $PKG.tar.gz $PKG
+          else
+            zip -r -q $PKG.zip $PKG
+          fi
+          ls -la
+
+      - name: Upload to the release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          for f in whysynth-*.tar.gz whysynth-*.zip; do
+            [ -f "$f" ] && gh release upload "$GITHUB_REF_NAME" "$f" --clobber
+          done

@@ -23,7 +23,6 @@
 
 #include <stdlib.h>
 
-#include <ladspa.h>
 
 #include "whysynth_types.h"
 
@@ -50,22 +49,22 @@ void *effects_request_buffer(y_synth_t *synth, size_t size);
 int   effects_setup(y_synth_t *synth);
 void  effects_cleanup(y_synth_t *synth);
 void  effects_process(y_synth_t *synth, unsigned long sample_count,
-                      LADSPA_Data *out_left, LADSPA_Data *out_right);
+                      float *out_left, float *out_right);
 
 /* in effect_reverb.c: */
 void effect_delay_request_buffers(y_synth_t *synth);
 void effect_delay_setup(y_synth_t *synth);
 void effect_delay_process(y_synth_t *synth, unsigned long sample_count,
-                          LADSPA_Data *out_left, LADSPA_Data *out_right);
+                          float *out_left, float *out_right);
 void effect_reverb_request_buffers(y_synth_t *synth);
 void effect_reverb_setup(y_synth_t *synth);
 void effect_reverb_process(y_synth_t *synth, unsigned long sample_count,
-                           LADSPA_Data *out_left, LADSPA_Data *out_right);
+                           float *out_left, float *out_right);
 
 /* in effect_screverb.c: */
 void effect_screverb_request_buffers(y_synth_t *synth);
 void effect_screverb_setup(y_synth_t *synth);
 void effect_screverb_process(y_synth_t *synth, unsigned long sample_count,
-                             LADSPA_Data *out_left, LADSPA_Data *out_right);
+                             float *out_left, float *out_right);
 
 #endif /* _EFFECTS_H */

@@ -34,7 +34,6 @@
 #include <math.h>
 #include <pthread.h>
 
-#include <ladspa.h>
 
 #include "whysynth.h"
 #include "dssp_synth.h"
@@ -523,18 +522,13 @@ y_synth_select_patch(y_synth_t *synth, unsigned long patch)
 /*
  * y_synth_set_program_descriptor
  */
-int
-y_synth_set_program_descriptor(y_synth_t *synth, DSSI_Program_Descriptor *pd,
-                               unsigned long patch)
+const char *
+y_synth_get_patch_name(y_synth_t *synth, unsigned long patch)
 {
     if (patch >= synth->patch_count) {
-        return 0;
+        return NULL;
     }
-    pd->Bank = 0;
-    pd->Program = patch;
-    pd->Name = synth->patches[patch].name;
-    return 1;
-
+    return synth->patches[patch].name;
 }
 
 /*
@@ -694,7 +688,7 @@ y_synth_handle_project_dir(y_synth_t *synth, const char *value)
  */
 void
 y_synth_render_voices(y_synth_t *synth,
-                      LADSPA_Data *out_left, LADSPA_Data *out_right,
+                      float *out_left, float *out_right,
                       unsigned long sample_count, int do_control_update)
 {
     unsigned long i;
