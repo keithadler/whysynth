@@ -2,9 +2,9 @@
  *
  * Copyright (C) 2026 Keith Adler. GPL-2.0-or-later.
  *
- *   whysynth-lv2-gen ttl > whysynth.ttl
- *   whysynth-lv2-gen presets > presets.ttl
- *   whysynth-lv2-gen manifest .so > manifest.ttl
+ *   whysynth-lv2-gen ttl OUT
+ *   whysynth-lv2-gen presets OUT [patchfile]
+ *   whysynth-lv2-gen manifest OUT [suffix]
  *
  * Both are derived from the port table and the factory patches at build
  * time, so the LV2 bundle can never drift from the synth.
@@ -235,30 +235,36 @@ int
 main(int argc, char **argv)
 {
     const char *mode = argc > 1 ? argv[1] : "";
+    const char *out_path = argc > 2 ? argv[2] : NULL;
+    FILE *out;
+    int rc = 0;
+
+    if (!out_path || (strcmp(mode, "ttl") && strcmp(mode, "presets") && strcmp(mode, "manifest"))) {
+        fprintf(stderr, "usage: whysynth-lv2-gen ttl OUT | presets OUT [patchfile] | manifest OUT [suffix]\n");
+        return 2;
+    }
+    out = fopen(out_path, "w");
+    if (!out) { fprintf(stderr, "cannot write %s\n", out_path); return 1; }
 
     if (!strcmp(mode, "ttl")) {
-        write_ttl(stdout);
-        return 0;
-    }
-    if (!strcmp(mode, "presets") || !strcmp(mode, "manifest")) {
+        write_ttl(out);
+    } else {
         whysynth_engine_t *e = whysynth_engine_new(48000.0f);
-        if (!e) { fprintf(stderr, "could not create engine\n"); return 1; }
+        if (!e) { fprintf(stderr, "could not create engine\n"); fclose(out); return 1; }
         if (!strcmp(mode, "manifest")) {
-            write_manifest(stdout, e, argc > 2 ? argv[2] : ".so");
-            whysynth_engine_free(e);
-            return 0;
-        }
-        if (argc > 2) {
-            char *err = NULL;
-            if (!whysynth_engine_load_patches_file(e, argv[2], &err)) {
-                fprintf(stderr, "could not load %s: %s\n", argv[2], err ? err : "?");
-                return 1;
+            write_manifest(out, e, argc > 3 ? argv[3] : ".so");
+        } else {
+            if (argc > 3) {
+                char *err = NULL;
+                if (!whysynth_engine_load_patches_file(e, argv[3], &err)) {
+                    fprintf(stderr, "could not load %s: %s\n", argv[3], err ? err : "?");
+                    rc = 1;
+                }
             }
+            if (!rc) write_presets(out, e);
         }
-        write_presets(stdout, e);
         whysynth_engine_free(e);
-        return 0;
     }
-    fprintf(stderr, "usage: whysynth-lv2-gen ttl | presets [patchfile] | manifest [suffix]\n");
-    return 2;
+    fclose(out);
+    return rc;
 }

@@ -52,7 +52,7 @@ implements `clap.preset-load`). The whole bank is saved with your session.
 
 **LV2.** The factory patches are shipped as LV2 presets, generated from the
 bank at build time, so they appear in your host's preset list. Any patch file
-can be turned into presets with `whysynth-lv2-gen presets file.WhySynth`.
+can be turned into presets with `whysynth-lv2-gen presets out.ttl file.WhySynth`.
 
 **Both.** Set `WHYSYNTH_DEFAULT_BANK` to a patch file to load it on every
 instance. Mod wheel, pressure, key and velocity are modulation sources; the
@@ -116,6 +116,8 @@ level down on `whysynth_core.h`, which speaks LADSPA-style ports directly.
 - Patches can be read from memory and written back to text without a GUI,
   which is what session state is built on.
 - `WHYSYNTH_DEFAULT_BANK` loads a bank on instantiation.
+- Several latent crashes in the oscillators at extreme pitches or sample
+  rates are fixed, and instances at different sample rates can coexist.
 
 Not yet: a graphical editor for the CLAP and LV2 plugins. The GTK2 editor
 still builds on Linux for DSSI hosts.

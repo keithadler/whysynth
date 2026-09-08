@@ -114,7 +114,7 @@ BLOSC_THIS(saw, unsigned long sample_count, y_sosc_t *sosc,
 
             /* place any DD that may have occurred in subsample before reset */
             if (pos_at_reset >= 1.0f) {
-                pos_at_reset -= 1.0f;
+                pos_at_reset -= floorf(pos_at_reset);
                 blosc_place_step_dd(index, pos_at_reset + eof_offset, w,
                                     voice->osc_bus_a, gain_a,
                                     voice->osc_bus_b, gain_b);
@@ -126,7 +126,7 @@ BLOSC_THIS(saw, unsigned long sample_count, y_sosc_t *sosc,
         } else
 #endif /* slave */
         if (pos >= 1.0f) {
-            pos -= 1.0f;
+            pos -= floorf(pos);
 #if BLOSC_MASTER
             voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -242,7 +242,7 @@ BLOSC_THIS(rect, unsigned long sample_count, y_sosc_t *sosc,
                     out = -0.5f;
                 }
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     blosc_place_step_dd(index, pos_at_reset + eof_offset, w,
                                         voice->osc_bus_a, gain_a,
                                         voice->osc_bus_b, gain_b);
@@ -251,7 +251,7 @@ BLOSC_THIS(rect, unsigned long sample_count, y_sosc_t *sosc,
                 }
             } else {
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     blosc_place_step_dd(index, pos_at_reset + eof_offset, w,
                                         voice->osc_bus_a, gain_a,
                                         voice->osc_bus_b, gain_b);
@@ -290,7 +290,7 @@ BLOSC_THIS(rect, unsigned long sample_count, y_sosc_t *sosc,
                 out = -0.5f;
             }
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -305,7 +305,7 @@ BLOSC_THIS(rect, unsigned long sample_count, y_sosc_t *sosc,
             }
         } else {
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -440,7 +440,7 @@ BLOSC_THIS(tri, unsigned long sample_count, y_sosc_t *sosc,
                     bp_high = 0;
                 }
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     out = -0.5f + pos_at_reset / pw;
                     slope_delta = (1.0f / pw + 1.0f / (1.0f - pw));
                     blosc_place_slope_dd(index, pos_at_reset + eof_offset, w,
@@ -451,7 +451,7 @@ BLOSC_THIS(tri, unsigned long sample_count, y_sosc_t *sosc,
             } else {
                 out = 0.5f - (pos_at_reset - pw) / (1.0f - pw);
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     out = -0.5f + pos_at_reset / pw;
                     slope_delta = (1.0f / pw + 1.0f / (1.0f - pw));
                     blosc_place_slope_dd(index, pos_at_reset + eof_offset, w,
@@ -498,7 +498,7 @@ BLOSC_THIS(tri, unsigned long sample_count, y_sosc_t *sosc,
                 bp_high = 0;
             }
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -515,7 +515,7 @@ BLOSC_THIS(tri, unsigned long sample_count, y_sosc_t *sosc,
         } else {
             out = 0.5f - (pos - pw) / (1.0f - pw);
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -637,7 +637,7 @@ BLOSC_THIS(noise, unsigned long sample_count, y_sosc_t *sosc,
                     out = -out;
                 }
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     newout = random_float(-0.5f, 1.0f);
                     blosc_place_step_dd(index, pos_at_reset + eof_offset, w,
                                         voice->osc_bus_a, gain_a * (newout - out),
@@ -647,7 +647,7 @@ BLOSC_THIS(noise, unsigned long sample_count, y_sosc_t *sosc,
                 }
             } else {
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     newout = random_float(-0.5f, 1.0f);
                     blosc_place_step_dd(index, pos_at_reset + eof_offset, w,
                                         voice->osc_bus_a, gain_a * (newout - out),
@@ -688,7 +688,7 @@ BLOSC_THIS(noise, unsigned long sample_count, y_sosc_t *sosc,
                 out = -out;
             }
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -704,7 +704,7 @@ BLOSC_THIS(noise, unsigned long sample_count, y_sosc_t *sosc,
             }
         } else {
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -817,7 +817,7 @@ BLOSC_THIS(clipsaw, unsigned long sample_count, y_sosc_t *sosc,
             if (state) {
                 out = -0.5f;
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     out = 0.5f - pos_at_reset / pw;
                     blosc_place_step_dd(index, pos_at_reset + eof_offset, w,
                                         voice->osc_bus_a, gain_a,
@@ -844,7 +844,7 @@ BLOSC_THIS(clipsaw, unsigned long sample_count, y_sosc_t *sosc,
                     state = 1;
                 }
                 if (pos_at_reset >= 1.0f) {
-                    pos_at_reset -= 1.0f;
+                    pos_at_reset -= floorf(pos_at_reset);
                     out = 0.5f - pos_at_reset / pw;
                     blosc_place_step_dd(index, pos_at_reset + eof_offset, w,
                                         voice->osc_bus_a, gain_a,
@@ -876,7 +876,7 @@ BLOSC_THIS(clipsaw, unsigned long sample_count, y_sosc_t *sosc,
         if (state) {  /* second half of waveform: chopped off portion */
             out = -0.5f;
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -906,7 +906,7 @@ BLOSC_THIS(clipsaw, unsigned long sample_count, y_sosc_t *sosc,
                 state = 1;
             }
             if (pos >= 1.0f) {
-                pos -= 1.0f;
+                pos -= floorf(pos);
 #if BLOSC_MASTER
                 voice->osc_sync[sample] = pos / w;
 #endif /* master */
@@ -1052,7 +1052,7 @@ wt_osc_slave (unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
             pos = eof_offset;
 
             if (pos_at_reset >= 1.0f) {
-                pos_at_reset -= 1.0f;
+                pos_at_reset -= floorf(pos_at_reset);
             }
 
             /* calculate amplitude change at reset point and place step DD */
@@ -1084,7 +1084,7 @@ wt_osc_slave (unsigned long sample_count, y_sosc_t *sosc, y_voice_t *voice,
         } else
 #endif /* slave */
         if (pos >= 1.0f) {
-            pos -= 1.0f;
+            pos -= floorf(pos);
 #if BLOSC_MASTER
             voice->osc_sync[sample] = pos / w;
         } else {

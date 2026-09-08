@@ -73,9 +73,9 @@ agran_oscillator(unsigned long sample_count,
 
     i = lrintf(*(sosc->mmod_src));
     if (i < 0 || i >= AG_GRAIN_ENVELOPE_COUNT)
-        envelope = &global.grain_envelope[0];
+        envelope = &synth->grain_envelope[0];
     else
-        envelope = &global.grain_envelope[i];
+        envelope = &synth->grain_envelope[i];
 
     i = voice->key + lrintf(*(sosc->pitch));
     if (vosc->mode != vosc->last_mode) {
@@ -195,7 +195,7 @@ agran_oscillator(unsigned long sample_count,
                     wave_pos += grain->w;
 
                     if (wave_pos >= 1.0f) {
-                        wave_pos -= 1.0f;
+                        wave_pos -= floorf(wave_pos);
                         /* async granular oscillators do not export sync */
                     }
 
@@ -217,7 +217,7 @@ agran_oscillator(unsigned long sample_count,
                     wave_pos += grain->w;
 
                     if (wave_pos >= 1.0f) {
-                        wave_pos -= 1.0f;
+                        wave_pos -= floorf(wave_pos);
                         /* async granular oscillators do not export sync */
                     }
 
@@ -260,7 +260,7 @@ agran_oscillator(unsigned long sample_count,
                     wave_pos += grain->w;
 
                     if (wave_pos >= 1.0f) {
-                        wave_pos -= 1.0f;
+                        wave_pos -= floorf(wave_pos);
                         /* async granular oscillators do not export sync */
                     }
 
@@ -282,7 +282,7 @@ agran_oscillator(unsigned long sample_count,
                     wave_pos += grain->w;
 
                     if (wave_pos >= 1.0f) {
-                        wave_pos -= 1.0f;
+                        wave_pos -= floorf(wave_pos);
                         /* async granular oscillators do not export sync */
                     }
 

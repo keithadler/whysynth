@@ -133,6 +133,7 @@ struct _y_synth_t {
     int             program_cancel;    /* if true, cancel any playing notes on recept of program change */
     char           *project_dir;
 
+    grain_envelope_data_t *grain_envelope;   /* grain envelopes for this instance's sample rate */
     grain_t        *grains;                   /* array of all grains */
     grain_t        *free_grain_list;          /* list of available grains */
 
@@ -209,6 +210,7 @@ struct _y_synth_t {
                     dc_block_l_ynm1,
                     dc_block_r_xnm1,
                     dc_block_r_ynm1;
+    unsigned int    nonfinite_recoveries;     /* times the run loop had to reset after a non-finite sample */
     char           *effect_buffer;
     size_t          effect_buffer_allocation;
     size_t          effect_buffer_highwater;
@@ -223,7 +225,6 @@ struct _y_global_t {
     int                    instance_count;
     unsigned long          sample_rate;
 
-    grain_envelope_data_t *grain_envelope;    /* array of grain envelopes */
 
     pthread_mutex_t        sampleset_mutex;
     pthread_mutex_t        signal_mutex;      /* worker thread wakeup */

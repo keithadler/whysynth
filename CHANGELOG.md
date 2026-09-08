@@ -23,6 +23,22 @@ The revival release. Same synth, new plugin formats, new build.
 - GitHub Actions CI on Linux, macOS and Windows with `clap-validator`;
   release builds attached to tags.
 
+### Fixed
+- The fourth mode LFO started at a phase past 1.0 when the phase spread
+  exceeded 120 degrees and read past the wavetable.
+- Oscillator phase wraps subtracted one cycle only, so a note above the
+  sample rate read past a wavetable; every wrap is now a full wrap and the
+  increment is clamped at Nyquist. The same in PADsynth sample playback.
+- PADsynth wrote its fundamental past the table at very low sample rates.
+- The global LFO's slope was computed over zero samples right after
+  activation, which put infinities into every modulator that used it.
+- Instances at different sample rates can now coexist: grain envelopes are
+  per instance and PADsynth samples are keyed by sample rate. The DSSI
+  plugin refused a second rate.
+- If a non-finite sample ever reaches the output, the run loop silences the
+  block and resets voices, filters and effects instead of going quiet for
+  good.
+
 ### Changed
 - CMake replaces autotools.
 - FFTW replaced by a vendored KISS FFT behind halfcomplex wrappers

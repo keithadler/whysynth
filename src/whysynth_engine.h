@@ -27,7 +27,10 @@
  * Threading follows hexter: render() is the audio thread and only tries the
  * voice lock; everything that changes the bank or the voice count takes the
  * lock and may block, so call those from the main thread. Parameter values
- * are plain floats the audio thread reads each control period. */
+ * are plain floats the audio thread reads each control period.
+ *
+ * Instances may run at different sample rates; PADsynth samples are shared
+ * between instances at the same rate. */
 
 #ifndef _WHYSYNTH_ENGINE_H
 #define _WHYSYNTH_ENGINE_H

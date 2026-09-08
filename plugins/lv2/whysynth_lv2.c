@@ -77,7 +77,7 @@ instantiate(const LV2_Descriptor *descriptor, double rate, const char *bundle_pa
     y_synth_static_init();
     h->synth = y_synth_new((unsigned long)(rate + 0.5));
     if (!h->synth) {
-        fprintf(stderr, "WhySynth.lv2: could not create the synth (all instances share one sample rate)\n");
+        fprintf(stderr, "WhySynth.lv2: could not create the synth\n");
         free(h);
         return NULL;
     }

@@ -149,9 +149,9 @@ if(WHYSYNTH_BUILD_LV2)
     add_custom_command(
         OUTPUT ${WHYSYNTH_LV2_BUNDLE_DIR}/whysynth.ttl ${WHYSYNTH_LV2_BUNDLE_DIR}/presets.ttl ${WHYSYNTH_LV2_BUNDLE_DIR}/manifest.ttl
         COMMAND ${CMAKE_COMMAND} -E make_directory ${WHYSYNTH_LV2_BUNDLE_DIR}
-        COMMAND whysynth_lv2_gen ttl > ${WHYSYNTH_LV2_BUNDLE_DIR}/whysynth.ttl
-        COMMAND whysynth_lv2_gen presets > ${WHYSYNTH_LV2_BUNDLE_DIR}/presets.ttl
-        COMMAND whysynth_lv2_gen manifest ${WHYSYNTH_LV2_SUFFIX} > ${WHYSYNTH_LV2_BUNDLE_DIR}/manifest.ttl
+        COMMAND whysynth_lv2_gen ttl ${WHYSYNTH_LV2_BUNDLE_DIR}/whysynth.ttl
+        COMMAND whysynth_lv2_gen presets ${WHYSYNTH_LV2_BUNDLE_DIR}/presets.ttl
+        COMMAND whysynth_lv2_gen manifest ${WHYSYNTH_LV2_BUNDLE_DIR}/manifest.ttl ${WHYSYNTH_LV2_SUFFIX}
         DEPENDS whysynth_lv2_gen
         COMMENT "Generating the LV2 port description and factory presets"
         VERBATIM)

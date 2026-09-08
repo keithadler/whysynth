@@ -32,6 +32,7 @@ struct _y_sample_t {
     volatile int   ref_count;
 
     int            mode;
+    unsigned long  sample_rate;
     signed short  *source;
     int            max_key;
     int            param1,
@@ -51,6 +52,7 @@ struct _y_sampleset_t {
     volatile int   rendered;
     volatile int   set_up;
 
+    unsigned long  sample_rate;
     int            mode,
                    waveform,
                    param1,
@@ -75,7 +77,7 @@ y_sample_t *sampleset_find_sample(y_sampleset_t *ss, int index);
 void *sampleset_worker_function(void *arg);
 
 void sampleset_check_oscillators(y_synth_t *synth);
-y_sampleset_t *sampleset_setup(y_sosc_t *sosc, int mode, int waveform,
+y_sampleset_t *sampleset_setup(y_sosc_t *sosc, unsigned long sample_rate, int mode, int waveform,
                                int param1, int param2, int param3, int param4);
 void sampleset_release(y_sampleset_t *sampleset);
 

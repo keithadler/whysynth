@@ -55,8 +55,7 @@ typedef struct {
 /* once per process, before anything else (idempotent) */
 void       y_synth_static_init(void);
 
-/* all live instances share one sample rate; returns NULL if a different
- * rate is asked for while others exist, or on allocation failure */
+/* returns NULL on allocation failure */
 y_synth_t *y_synth_new(unsigned long sample_rate);
 void       y_synth_free(y_synth_t *synth);
 

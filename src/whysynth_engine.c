@@ -47,6 +47,7 @@ struct _whysynth_engine_t {
 
 static whysynth_param_info_t param_info[WHYSYNTH_PORT_COUNT];
 static int param_info_ready = 0;
+static void ports_from_patch(const y_patch_t *patch, float *v);
 
 static float
 default_for(const struct y_port_descriptor *d, float lo, float hi)
@@ -88,6 +89,20 @@ build_param_info(void)
                          d->type == Y_PORT_TYPE_BOOLEAN || (d->hint_descriptor & LADSPA_HINT_INTEGER)) ? 1 : 0;
         p->is_output = (d->port_descriptor & LADSPA_PORT_OUTPUT) ? 1 : 0;
         p->def = p->is_output ? 0.0f : default_for(d, p->min, p->max);
+    }
+    /* a fresh instance sounds like factory patch 1, so those are the
+     * defaults a host should see; the table's own defaults are not a
+     * coherent patch */
+    if (y_friendly_patch_count > 0) {
+        float v[WHYSYNTH_PORT_COUNT];
+        memset(v, 0, sizeof(v));
+        ports_from_patch(&y_friendly_patches[0], v);
+        for (i = WHYSYNTH_PORT_FIRST_PARAM; i < WHYSYNTH_PORT_COUNT; i++) {
+            float d = v[i];
+            if (d < param_info[i].min) d = param_info[i].min;
+            if (d > param_info[i].max) d = param_info[i].max;
+            param_info[i].def = d;
+        }
     }
     param_info_ready = 1;
 }
@@ -384,6 +399,75 @@ whysynth_engine_patch_text(const whysynth_engine_t *e, int index, char *buf, siz
 {
     if (index < 0 || (unsigned int)index >= e->synth->patch_count) return -1;
     return y_data_patch_to_text(&e->synth->patches[index], buf, size);
+}
+
+/* y_voice_set_ports() without a synth: a patch as port values */
+static void
+ports_from_patch(const y_patch_t *patch, float *v)
+{
+#define SI(port, x) v[port] = (float)(x)
+#define SF(port, x) v[port] = (x)
+#define OSC(o, base) do { \
+        SI(base + 0, (o).mode); SI(base + 1, (o).waveform); SI(base + 2, (o).pitch); \
+        SF(base + 3, (o).detune); SI(base + 4, (o).pitch_mod_src); SF(base + 5, (o).pitch_mod_amt); \
+        SF(base + 6, (o).mparam1); SF(base + 7, (o).mparam2); SI(base + 8, (o).mmod_src); \
+        SF(base + 9, (o).mmod_amt); SI(base + 10, (o).amp_mod_src); SF(base + 11, (o).amp_mod_amt); \
+        SF(base + 12, (o).level_a); SF(base + 13, (o).level_b); } while (0)
+#define VCF(f, base) do { \
+        SI(base + 0, (f).mode); SI(base + 1, (f).source); SF(base + 2, (f).frequency); \
+        SI(base + 3, (f).freq_mod_src); SF(base + 4, (f).freq_mod_amt); SF(base + 5, (f).qres); \
+        SF(base + 6, (f).mparam); } while (0)
+#define EG(g, base) do { \
+        SI(base + 0, (g).mode); \
+        SI(base + 1, (g).shape1); SF(base + 2, (g).time1); SF(base + 3, (g).level1); \
+        SI(base + 4, (g).shape2); SF(base + 5, (g).time2); SF(base + 6, (g).level2); \
+        SI(base + 7, (g).shape3); SF(base + 8, (g).time3); SF(base + 9, (g).level3); \
+        SI(base + 10, (g).shape4); SF(base + 11, (g).time4); \
+        SF(base + 12, (g).vel_level_sens); SF(base + 13, (g).vel_time_scale); SF(base + 14, (g).kbd_time_scale); \
+        SI(base + 15, (g).amp_mod_src); SF(base + 16, (g).amp_mod_amt); } while (0)
+
+    OSC(patch->osc1, Y_PORT_OSC1_MODE);
+    OSC(patch->osc2, Y_PORT_OSC2_MODE);
+    OSC(patch->osc3, Y_PORT_OSC3_MODE);
+    OSC(patch->osc4, Y_PORT_OSC4_MODE);
+    VCF(patch->vcf1, Y_PORT_VCF1_MODE);
+    VCF(patch->vcf2, Y_PORT_VCF2_MODE);
+    SF(Y_PORT_BUSA_LEVEL, patch->busa_level); SF(Y_PORT_BUSA_PAN, patch->busa_pan);
+    SF(Y_PORT_BUSB_LEVEL, patch->busb_level); SF(Y_PORT_BUSB_PAN, patch->busb_pan);
+    SF(Y_PORT_VCF1_LEVEL, patch->vcf1_level); SF(Y_PORT_VCF1_PAN, patch->vcf1_pan);
+    SF(Y_PORT_VCF2_LEVEL, patch->vcf2_level); SF(Y_PORT_VCF2_PAN, patch->vcf2_pan);
+    SF(Y_PORT_VOLUME, patch->volume);
+    SI(Y_PORT_EFFECT_MODE, patch->effect_mode);
+    SF(Y_PORT_EFFECT_PARAM1, patch->effect_param1); SF(Y_PORT_EFFECT_PARAM2, patch->effect_param2);
+    SF(Y_PORT_EFFECT_PARAM3, patch->effect_param3); SF(Y_PORT_EFFECT_PARAM4, patch->effect_param4);
+    SF(Y_PORT_EFFECT_PARAM5, patch->effect_param5); SF(Y_PORT_EFFECT_PARAM6, patch->effect_param6);
+    SF(Y_PORT_EFFECT_MIX, patch->effect_mix);
+    SF(Y_PORT_GLIDE_TIME, patch->glide_time);
+    SI(Y_PORT_BEND_RANGE, patch->bend_range);
+    SF(Y_PORT_GLFO_FREQUENCY, patch->glfo.frequency); SI(Y_PORT_GLFO_WAVEFORM, patch->glfo.waveform);
+    SI(Y_PORT_GLFO_AMP_MOD_SRC, patch->glfo.amp_mod_src); SF(Y_PORT_GLFO_AMP_MOD_AMT, patch->glfo.amp_mod_amt);
+    SF(Y_PORT_VLFO_FREQUENCY, patch->vlfo.frequency); SI(Y_PORT_VLFO_WAVEFORM, patch->vlfo.waveform);
+    SF(Y_PORT_VLFO_DELAY, patch->vlfo.delay);
+    SI(Y_PORT_VLFO_AMP_MOD_SRC, patch->vlfo.amp_mod_src); SF(Y_PORT_VLFO_AMP_MOD_AMT, patch->vlfo.amp_mod_amt);
+    SF(Y_PORT_MLFO_FREQUENCY, patch->mlfo.frequency); SI(Y_PORT_MLFO_WAVEFORM, patch->mlfo.waveform);
+    SF(Y_PORT_MLFO_DELAY, patch->mlfo.delay);
+    SI(Y_PORT_MLFO_AMP_MOD_SRC, patch->mlfo.amp_mod_src); SF(Y_PORT_MLFO_AMP_MOD_AMT, patch->mlfo.amp_mod_amt);
+    SF(Y_PORT_MLFO_PHASE_SPREAD, patch->mlfo_phase_spread);
+    SF(Y_PORT_MLFO_RANDOM_FREQ, patch->mlfo_random_freq);
+    EG(patch->ego, Y_PORT_EGO_MODE);
+    EG(patch->eg1, Y_PORT_EG1_MODE);
+    EG(patch->eg2, Y_PORT_EG2_MODE);
+    EG(patch->eg3, Y_PORT_EG3_MODE);
+    EG(patch->eg4, Y_PORT_EG4_MODE);
+    SF(Y_PORT_MODMIX_BIAS, patch->modmix_bias);
+    SI(Y_PORT_MODMIX_MOD1_SRC, patch->modmix_mod1_src); SF(Y_PORT_MODMIX_MOD1_AMT, patch->modmix_mod1_amt);
+    SI(Y_PORT_MODMIX_MOD2_SRC, patch->modmix_mod2_src); SF(Y_PORT_MODMIX_MOD2_AMT, patch->modmix_mod2_amt);
+    v[Y_PORT_TUNING] = 440.0f;
+#undef SI
+#undef SF
+#undef OSC
+#undef VCF
+#undef EG
 }
 
 /* the inverse of y_voice_set_ports(): the current parameters as a patch */

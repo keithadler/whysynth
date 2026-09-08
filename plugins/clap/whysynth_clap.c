@@ -109,9 +109,6 @@ recreate_engine(whysynth_clap_t *h, float sample_rate)
         size_t cap = whysynth_engine_state_size(h->engine);
         state = (char *)malloc(cap);
         if (state) n = whysynth_engine_state_save(h->engine, state, cap);
-        /* all live engines share one rate, so the old one must go first */
-        whysynth_engine_free(h->engine);
-        h->engine = NULL;
     }
     e = whysynth_engine_new(sample_rate);
     if (!e) {
@@ -120,6 +117,7 @@ recreate_engine(whysynth_clap_t *h, float sample_rate)
     }
     if (state && n) whysynth_engine_state_load(e, state, n);
     free(state);
+    if (h->engine) whysynth_engine_free(h->engine);
     h->engine = e;
     h->sample_rate = sample_rate;
     return true;
@@ -495,7 +493,7 @@ plugin_activate(const clap_plugin_t *plugin, double sample_rate, uint32_t min_fr
 
     if ((float)sample_rate != h->sample_rate) {
         if (!recreate_engine(h, (float)sample_rate)) {
-            log_msg(h, CLAP_LOG_ERROR, "could not create the engine at this sample rate (all WhySynth instances share one rate)");
+            log_msg(h, CLAP_LOG_ERROR, "could not create the engine at this sample rate");
             return false;
         }
         whysynth_engine_get_params(h->engine, h->reported);

@@ -387,9 +387,8 @@ test_state(void)
     CHECK(n > 1000 && n < cap, "state saved, %zu bytes", n);
     { char tiny[100]; CHECK(whysynth_engine_state_save(a, tiny, sizeof(tiny)) == 0, "small buffer refused"); }
 
-    /* the old engine has to go first: instances share a sample rate */
-    whysynth_engine_free(a);
     b = whysynth_engine_new(48000.0f);
+    whysynth_engine_free(a);
     CHECK(whysynth_engine_state_load(b, state, n), "state loaded");
     CHECK(whysynth_engine_get_polyphony(b) == 7, "polyphony %d", whysynth_engine_get_polyphony(b));
     CHECK(whysynth_engine_get_mono_mode(b) == WHYSYNTH_MONO_ONCE, "mono mode %d", whysynth_engine_get_mono_mode(b));
@@ -455,16 +454,24 @@ test_sample_rates(void)
         CHECK(energy > 0.0, "%g Hz: sound", rates[r]);
         whysynth_engine_free(e);
     }
-    /* a second live instance at a different rate is refused; same rate is fine */
+    /* instances at different rates live side by side */
     {
         whysynth_engine_t *a = whysynth_engine_new(48000.0f);
         whysynth_engine_t *b = whysynth_engine_new(44100.0f);
-        whysynth_engine_t *c = whysynth_engine_new(48000.0f);
-        CHECK(a && !b && c, "shared sample rate rule");
-        whysynth_engine_free(a); whysynth_engine_free(c);
-        b = whysynth_engine_new(44100.0f);
-        CHECK(b != NULL, "new rate allowed once the others are gone");
-        whysynth_engine_free(b);
+        whysynth_engine_t *c = whysynth_engine_new(96000.0f);
+        float l[256], r[256];
+        whysynth_event_t ev; memset(&ev, 0, sizeof(ev)); ev.type = Y_EV_NOTE_ON; ev.a = 60; ev.b = 100;
+        CHECK(a && b && c, "three instances at three rates");
+        if (a && b && c) {
+            int i;
+            for (i = 0; i < 20; i++) {
+                whysynth_engine_render(a, l, r, 256, i ? NULL : &ev, i ? 0 : 1);
+                whysynth_engine_render(b, l, r, 256, i ? NULL : &ev, i ? 0 : 1);
+                whysynth_engine_render(c, l, r, 256, i ? NULL : &ev, i ? 0 : 1);
+            }
+            CHECK(fabsf(whysynth_engine_get_sample_rate(b) - 44100.0f) < 1.0f, "rate kept per instance");
+        }
+        whysynth_engine_free(a); whysynth_engine_free(b); whysynth_engine_free(c);
     }
 }
 

@@ -119,37 +119,28 @@ y_synth_new(unsigned long sample_rate)
     if (!synth) return NULL;
 
     pthread_mutex_lock(&global_mutex);
-
     if (global.initialized) {
-
-        if (sample_rate != global.sample_rate) {
-            /* all instances must share same sample rate */
-            pthread_mutex_unlock(&global_mutex);
-            free(synth);
-            return NULL;
-        }
-
         global.instance_count++;
-
     } else {
-
         global.sample_rate = sample_rate;
-        global.grain_envelope = create_grain_envelopes(sample_rate);
-        if (!global.grain_envelope) {
-            YDB_MESSAGE(-1, " y_instantiate: out of memory!\n");
-            free(synth);
-            return NULL;
-        }
         if (!sampleset_init()) {
-            YDB_MESSAGE(-1, " y_instantiate: sampleset_setup() failed!\n");
+            YDB_MESSAGE(-1, " y_synth_new: sampleset_init() failed!\n");
+            pthread_mutex_unlock(&global_mutex);
             free(synth);
             return NULL;
         }
         global.instance_count = 1;
         global.initialized = 1;
     }
-
     pthread_mutex_unlock(&global_mutex);
+
+    /* grain envelopes depend on the sample rate, so each instance has its own */
+    synth->grain_envelope = create_grain_envelopes(sample_rate);
+    if (!synth->grain_envelope) {
+        YDB_MESSAGE(-1, " y_synth_new: out of memory!\n");
+        y_synth_free(synth);
+        return NULL;
+    }
 
     /* do any per-instance one-time initialization here */
     for (i = 0; i < Y_MAX_POLYPHONY; i++) {
@@ -226,6 +217,7 @@ y_synth_free(y_synth_t *synth)
         if (synth->voice[i]) free(synth->voice[i]);
     if (synth->patches) free(synth->patches);
     if (synth->grains) free(synth->grains);
+    if (synth->grain_envelope) free_grain_envelopes(synth->grain_envelope);
     if (synth->project_dir) free(synth->project_dir);
     sampleset_cleanup(synth);
     effects_cleanup(synth);
@@ -233,7 +225,6 @@ y_synth_free(y_synth_t *synth)
     pthread_mutex_lock(&global_mutex);
     if (--global.instance_count == 0) {
         sampleset_fini();
-        free_grain_envelopes(global.grain_envelope);
         global.initialized = 0;
     }
     pthread_mutex_unlock(&global_mutex);
@@ -646,6 +637,37 @@ y_synth_run(y_synth_t *synth, unsigned long sample_count,
     while (event_index < event_count) {
         handle_event(synth, &events[event_index]);
         event_index++;
+    }
+
+    /* A non-finite sample would stay in the filter and effect state for
+     * good and the instrument would fall silent. Extreme parameter
+     * combinations at unusual sample rates can still reach one, so when it
+     * happens: silence this block, drop every voice and reset the effect and
+     * DC-blocker state. One click instead of a dead plugin. */
+    {
+        unsigned long i;
+        int bad = 0;
+        for (i = 0; i < sample_count; i++) {
+            if (!(synth->output_left[i] == synth->output_left[i]) ||
+                !(synth->output_right[i] == synth->output_right[i]) ||
+                synth->output_left[i] > 1e6f || synth->output_left[i] < -1e6f ||
+                synth->output_right[i] > 1e6f || synth->output_right[i] < -1e6f) {
+                bad = 1;
+                break;
+            }
+        }
+        if (bad) {
+            memset(synth->output_left,  0, sizeof(float) * sample_count);
+            memset(synth->output_right, 0, sizeof(float) * sample_count);
+            y_synth_all_voices_off(synth);
+            synth->dc_block_l_xnm1 = synth->dc_block_l_ynm1 = 0.0f;
+            synth->dc_block_r_xnm1 = synth->dc_block_r_ynm1 = 0.0f;
+            synth->last_effect_mode = -1;   /* effects re-initialize their buffers */
+            for (i = 1; i < Y_GLOBAL_MODS_COUNT; i++) {
+                synth->mod[i].value = synth->mod[i].next_value = synth->mod[i].delta = 0.0f;
+            }
+            synth->nonfinite_recoveries++;
+        }
     }
 
     dssp_voicelist_mutex_unlock(synth);

@@ -105,6 +105,7 @@ sampleset_find_sample(y_sampleset_t *ss, int index)
 
         for (s = global.active_sample_list; s; s = s->next) {
             if (s->mode == Y_OSCILLATOR_MODE_PADSYNTH &&
+                s->sample_rate == ss->sample_rate &&
                 s->source == ss->source[index] &&
                 s->max_key == ss->max_key[index] &&
                 s->param1 == ss->param1 &&
@@ -425,6 +426,7 @@ sampleset_worker_function(void *arg)
 
                 sample->ref_count = 0;
                 sample->mode     = render_ss->mode;
+                sample->sample_rate = render_ss->sample_rate;
                 sample->source   = render_ss->source[render_index];
                 sample->max_key  = render_ss->max_key[render_index];
                 sample->param1   = render_ss->param1;
@@ -499,7 +501,7 @@ sampleset_check_oscillator(y_synth_t *synth, y_sosc_t *sosc,
                     *changed = 1;
                     /* YDB_MESSAGE(YDB_SAMPLE, " sampleset_check_oscillator: change on oscillator %p\n", sosc); */
                     sampleset_release(sosc->sampleset);
-                    sosc->sampleset = sampleset_setup(sosc, mode, waveform,
+                    sosc->sampleset = sampleset_setup(sosc, (unsigned long)lrintf(synth->sample_rate), mode, waveform,
                                                       param1, param2, param3, param4);
                 }
             }
@@ -507,7 +509,7 @@ sampleset_check_oscillator(y_synth_t *synth, y_sosc_t *sosc,
             if (*changed || !pthread_mutex_trylock(&global.sampleset_mutex)) {
                 *changed = 1;
                 /* YDB_MESSAGE(YDB_SAMPLE, " sampleset_check_oscillator: new for oscillator %p\n", sosc); */
-                sosc->sampleset = sampleset_setup(sosc, mode, waveform,
+                sosc->sampleset = sampleset_setup(sosc, (unsigned long)lrintf(synth->sample_rate), mode, waveform,
                                                   param1, param2, param3, param4);
             }
         }
@@ -548,13 +550,13 @@ sampleset_check_oscillators(y_synth_t *synth)
  * The sampleset mutex must be locked before calling this.
  */
 y_sampleset_t *
-sampleset_setup(y_sosc_t *sosc, int mode, int waveform, int param1, int param2,
+sampleset_setup(y_sosc_t *sosc, unsigned long sample_rate, int mode, int waveform, int param1, int param2,
                 int param3, int param4)
 {
     y_sampleset_t *ss;
 
     for (ss = global.active_sampleset_list; ss; ss = ss->next) {
-        if (mode == ss->mode && waveform == ss->waveform &&
+        if (mode == ss->mode && waveform == ss->waveform && sample_rate == ss->sample_rate &&
             param1 == ss->param1 && param2 == ss->param2 &&
             param3 == ss->param3 && param4 == ss->param4) {
             ss->ref_count++;
@@ -577,6 +579,7 @@ sampleset_setup(y_sosc_t *sosc, int mode, int waveform, int param1, int param2,
     ss->rendered = 0;
     ss->set_up = 0;
 
+    ss->sample_rate = sample_rate;
     ss->mode     = mode;
     ss->waveform = waveform;
     ss->param1   = param1;
