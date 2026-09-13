@@ -38,9 +38,9 @@
 
 #if BLOSC_MASTER
 /* #define BLOSC_THIS(x, ...) blosc_master##x(__VA_ARGS__) */
-#define BLOSC_THIS(x, args...) blosc_master##x(args)
+#define BLOSC_THIS(x, ...) blosc_master##x(__VA_ARGS__)
 #else
-#define BLOSC_THIS(x, args...) blosc_slave##x(args)
+#define BLOSC_THIS(x, ...) blosc_slave##x(__VA_ARGS__)
 #endif
 
 /* ==== minBLEP oscillators ==== */

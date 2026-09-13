@@ -31,7 +31,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdarg.h>
-#include <pthread.h>
+#include "y_thread.h"
 
 #include "whysynth_types.h"
 #include "whysynth.h"
@@ -45,7 +45,7 @@
 #include "effects.h"
 #include "whysynth_core.h"
 
-static pthread_mutex_t global_mutex = PTHREAD_MUTEX_INITIALIZER;
+static y_mutex_t global_mutex = Y_MUTEX_INITIALIZER;
 y_global_t             global;
 static int             static_initialized = 0;
 
@@ -56,7 +56,7 @@ dssp_voicelist_mutex_trylock(y_synth_t *synth)
 {
     int rc;
 
-    rc = pthread_mutex_trylock(&synth->voicelist_mutex);
+    rc = y_mutex_trylock(&synth->voicelist_mutex);
     if (rc) {
         synth->voicelist_mutex_grab_failed = 1;
         return rc;
@@ -71,13 +71,13 @@ dssp_voicelist_mutex_trylock(y_synth_t *synth)
 int
 dssp_voicelist_mutex_lock(y_synth_t *synth)
 {
-    return pthread_mutex_lock(&synth->voicelist_mutex);
+    return y_mutex_lock(&synth->voicelist_mutex);
 }
 
 int
 dssp_voicelist_mutex_unlock(y_synth_t *synth)
 {
-    return pthread_mutex_unlock(&synth->voicelist_mutex);
+    return y_mutex_unlock(&synth->voicelist_mutex);
 }
 
 char *
@@ -97,14 +97,14 @@ dssi_configure_message(const char *fmt, ...)
 void
 y_synth_static_init(void)
 {
-    pthread_mutex_lock(&global_mutex);
+    y_mutex_lock(&global_mutex);
     if (!static_initialized) {
         global.initialized = 0;
         y_init_tables();
         wave_tables_set_count();
         static_initialized = 1;
     }
-    pthread_mutex_unlock(&global_mutex);
+    y_mutex_unlock(&global_mutex);
 }
 
 /* ---- instance lifetime ---- */
@@ -118,21 +118,21 @@ y_synth_new(unsigned long sample_rate)
 
     if (!synth) return NULL;
 
-    pthread_mutex_lock(&global_mutex);
+    y_mutex_lock(&global_mutex);
     if (global.initialized) {
         global.instance_count++;
     } else {
         global.sample_rate = sample_rate;
         if (!sampleset_init()) {
             YDB_MESSAGE(-1, " y_synth_new: sampleset_init() failed!\n");
-            pthread_mutex_unlock(&global_mutex);
+            y_mutex_unlock(&global_mutex);
             free(synth);
             return NULL;
         }
         global.instance_count = 1;
         global.initialized = 1;
     }
-    pthread_mutex_unlock(&global_mutex);
+    y_mutex_unlock(&global_mutex);
 
     /* grain envelopes depend on the sample rate, so each instance has its own */
     synth->grain_envelope = create_grain_envelopes(sample_rate);
@@ -179,9 +179,9 @@ y_synth_new(unsigned long sample_rate)
     synth->monophonic = 0;
     synth->glide = 0;
     synth->last_noteon_pitch = 0.0f;
-    pthread_mutex_init(&synth->voicelist_mutex, NULL);
+    y_mutex_init(&synth->voicelist_mutex);
     synth->voicelist_mutex_grab_failed = 0;
-    pthread_mutex_init(&synth->patches_mutex, NULL);
+    y_mutex_init(&synth->patches_mutex);
     synth->patch_count = 0;
     synth->patches_allocated = 0;
     synth->patches = NULL;
@@ -222,12 +222,12 @@ y_synth_free(y_synth_t *synth)
     sampleset_cleanup(synth);
     effects_cleanup(synth);
     free(synth);
-    pthread_mutex_lock(&global_mutex);
+    y_mutex_lock(&global_mutex);
     if (--global.instance_count == 0) {
         sampleset_fini();
         global.initialized = 0;
     }
-    pthread_mutex_unlock(&global_mutex);
+    y_mutex_unlock(&global_mutex);
 }
 
 
@@ -488,24 +488,24 @@ void
 y_synth_request_patch(y_synth_t *synth, unsigned long patch)
 {
     if (patch >= synth->patch_count) return;
-    if (pthread_mutex_trylock(&synth->patches_mutex)) {
+    if (y_mutex_trylock(&synth->patches_mutex)) {
         synth->pending_patch_change = (int)patch;
         return;
     }
     y_synth_select_patch(synth, patch);
-    pthread_mutex_unlock(&synth->patches_mutex);
+    y_mutex_unlock(&synth->patches_mutex);
 }
 
 static inline void
 handle_pending_patch_change(y_synth_t *synth)
 {
-    if (pthread_mutex_trylock(&synth->patches_mutex))
+    if (y_mutex_trylock(&synth->patches_mutex))
         return;
     if (synth->pending_patch_change >= 0 &&
         (unsigned int)synth->pending_patch_change < synth->patch_count)
         y_synth_select_patch(synth, synth->pending_patch_change);
     synth->pending_patch_change = -1;
-    pthread_mutex_unlock(&synth->patches_mutex);
+    y_mutex_unlock(&synth->patches_mutex);
 }
 
 /* ---- events and the run loop ---- */

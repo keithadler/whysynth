@@ -20,7 +20,7 @@
 
 #include <stdlib.h>
 #include <string.h>
-#include <pthread.h>
+#include "y_thread.h"
 
 #include "whysynth_types.h"
 #include "whysynth.h"
@@ -82,7 +82,7 @@ y_data_load(y_synth_t *synth, char *filename)
     if ((fh = fopen(filename, "rb")) == NULL)
         return dssi_configure_message("load error: could not open file '%s'", filename);
 
-    pthread_mutex_lock(&synth->patches_mutex);
+    y_mutex_lock(&synth->patches_mutex);
 
     while (1) {
         y_data_check_patches_allocation(synth, count);
@@ -93,13 +93,13 @@ y_data_load(y_synth_t *synth, char *filename)
     fclose(fh);
 
     if (!count) {
-        pthread_mutex_unlock(&synth->patches_mutex);
+        y_mutex_unlock(&synth->patches_mutex);
         return dssi_configure_message("load error: no patches recognized in patch file '%s'", filename);
     }
     if (count > synth->patch_count)
         synth->patch_count = count;
 
-    pthread_mutex_unlock(&synth->patches_mutex);
+    y_mutex_unlock(&synth->patches_mutex);
 
     return NULL; /* success */
 }

@@ -16,6 +16,7 @@ libraries are installed.
 | | |
 |---|---|
 | Plugins | CLAP (`WhySynth.clap`), LV2 (`whysynth.lv2`), Audio Unit (`WhySynth.component`, macOS), DSSI (legacy, Linux) |
+| Standalone | `WhySynth.app` (macOS), `WhySynth` (Linux), `WhySynth.exe` (Windows): its own window, audio and MIDI, no host needed |
 | Platforms | Linux, macOS (Apple silicon and Intel), Windows |
 | Patches | `.WhySynth` text files; the factory bank is built in |
 | License | GPL-2.0-or-later; the patches are public domain |
@@ -25,11 +26,17 @@ libraries are installed.
 Builds for every platform are attached to each
 [release](https://github.com/keithadler/whysynth/releases). Unzip and copy:
 
-| Platform | CLAP | LV2 | Audio Unit |
-|---|---|---|---|
-| Linux | `~/.clap/` | `~/.lv2/` | |
-| macOS | `~/Library/Audio/Plug-Ins/CLAP/` | `~/Library/Audio/Plug-Ins/LV2/` | `~/Library/Audio/Plug-Ins/Components/` |
-| Windows | `%COMMONPROGRAMFILES%\CLAP\` | `%APPDATA%\LV2\` | |
+| Platform | CLAP | LV2 | Audio Unit | Standalone |
+|---|---|---|---|---|
+| Linux | `~/.clap/` | `~/.lv2/` | | `WhySynth`, run it |
+| macOS | `~/Library/Audio/Plug-Ins/CLAP/` | `~/Library/Audio/Plug-Ins/LV2/` | `~/Library/Audio/Plug-Ins/Components/` | `WhySynth.app`, anywhere |
+| Windows | `%COMMONPROGRAMFILES%\CLAP\` | `%APPDATA%\LV2\` | | `WhySynth.exe`, anywhere |
+
+**No DAW?** The standalone is WhySynth in a window of its own. It opens on the default audio
+output, listens on every MIDI input it finds, and has an *Audio/MIDI Settings* panel for the
+output device and sample rate. Plug in a keyboard and play. It has no editor, so choose
+patches with MIDI program change from the factory bank, or set `WHYSYNTH_DEFAULT_BANK` to a
+`.WhySynth` file before starting it (see below).
 
 **Logic Pro and GarageBand** use the Audio Unit. After copying it, restart
 Logic; it appears under AU Instruments as Keith Adler > WhySynth. It passes
@@ -90,8 +97,13 @@ cmake --build build --parallel
 ctest --test-dir build --output-on-failure
 ```
 
+On Windows, build with MSVC (the Visual Studio Build Tools) and `-G Ninja` to get the
+standalone; clap-wrapper's Windows shell is C++/WinRT, which MinGW cannot compile. A MinGW
+build still produces the plugins and the tool.
+
 That produces `build/WhySynth.clap`, `build/lv2/whysynth.lv2/`,
-`build/whysynth-render`, and on macOS `build/auv2/WhySynth.component`. The CLAP and LV2 headers are fetched by CMake if not
+`build/whysynth-render`, the standalone in `build/wrapped/`, and on macOS
+`build/wrapped/WhySynth.component`. The CLAP and LV2 headers are fetched by CMake if not
 installed; KISS FFT is vendored. On Linux, installing `dssi-dev liblo-dev
 libgtk2.0-dev libasound2-dev` also builds the original DSSI plugin and GTK2
 editor. Installing `lilv-dev` (or `brew install lilv`) enables the LV2 host

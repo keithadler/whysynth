@@ -32,7 +32,7 @@
 #include <stdio.h>
 #include <string.h>
 #include <math.h>
-#include <pthread.h>
+#include "y_thread.h"
 
 
 #include "whysynth.h"

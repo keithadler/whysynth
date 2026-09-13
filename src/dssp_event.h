@@ -27,7 +27,7 @@
 #define _DSSP_EVENT_H
 
 #include <stdlib.h>
-#include <pthread.h>
+#include "y_thread.h"
 
 
 #include "whysynth_types.h"
@@ -120,12 +120,12 @@ struct _y_synth_t {
     float           last_noteon_pitch; /* glide start pitch for non-legato modes */
     signed char     held_keys[8];      /* for monophonic key tracking, an array of note-ons, most recently received first */
     
-    pthread_mutex_t voicelist_mutex;
+    y_mutex_t voicelist_mutex;
     int             voicelist_mutex_grab_failed;
 
     y_voice_t      *voice[Y_MAX_POLYPHONY];
 
-    pthread_mutex_t patches_mutex;
+    y_mutex_t patches_mutex;
     unsigned int    patch_count;
     unsigned int    patches_allocated;
     y_patch_t      *patches;
@@ -226,13 +226,13 @@ struct _y_global_t {
     unsigned long          sample_rate;
 
 
-    pthread_mutex_t        sampleset_mutex;
-    pthread_mutex_t        signal_mutex;      /* worker thread wakeup */
-    pthread_cond_t         signal_cond;
+    y_mutex_t        sampleset_mutex;
+    y_mutex_t        signal_mutex;      /* worker thread wakeup */
+    y_cond_t         signal_cond;
     int                    signal_pending;
     int                    worker_thread_started;
     volatile int           worker_thread_done;
-    pthread_t              worker_thread;
+    y_thread_t              worker_thread;
     int                    samplesets_allocated;
     y_sampleset_t         *active_sampleset_list;
     y_sampleset_t         *free_sampleset_list;

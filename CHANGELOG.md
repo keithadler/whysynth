@@ -1,5 +1,25 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- A standalone application, `WhySynth.app` (macOS), `WhySynth` (Linux) and `WhySynth.exe`
+  (Windows): the CLAP in a window of its own with audio and MIDI I/O, through clap-wrapper
+  with RtAudio and RtMidi. It opens on the default output, listens on every MIDI input, and
+  has an Audio/MIDI Settings panel. No DAW needed. The same as hexter 2.1.0.
+
+### Changed
+- The Windows release is built with MSVC instead of MinGW, because clap-wrapper's Windows
+  standalone shell is C++/WinRT. The C runtime is linked statically, so the zip still needs
+  nothing installed. MinGW builds keep working (CI checks them) and skip the standalone.
+- The engine's mutexes, condition variable and worker thread are behind `y_thread.h`:
+  pthreads where they exist, SRWLOCK, CONDITION_VARIABLE and `_beginthreadex` on MSVC, which
+  has no pthread.h.
+
+### Fixed
+- The release workflow passed hexter's `-DHEXTER_BUILD_DSSI=OFF` instead of
+  `-DWHYSYNTH_BUILD_DSSI=OFF`, a leftover from copying it.
+
 ## 2.0.1 (2026-09-12)
 
 ### Fixed

@@ -16,15 +16,26 @@ jobs:
           - name: Linux
             os: ubuntu-latest
             validator: ubuntu
+            shell: bash
           - name: macOS
             os: macos-latest
             validator: macos-universal
-          - name: Windows
+            shell: bash
+          # MSVC builds everything, the standalone included; it is what the release ships.
+          - name: Windows-MSVC
             os: windows-latest
             validator: windows
+            shell: bash
+            toolchain: msvc
+          # MinGW is kept building for people who use MSYS2; it skips the standalone.
+          - name: Windows-MinGW
+            os: windows-latest
+            validator: windows
+            shell: msys2 {0}
+            toolchain: mingw
     defaults:
       run:
-        shell: ${{ matrix.os == 'windows-latest' && 'msys2 {0}' || 'bash' }}
+        shell: ${{ matrix.shell }}
     steps:
       - uses: actions/checkout@v4
 
@@ -32,10 +43,14 @@ jobs:
         if: matrix.os == 'ubuntu-latest'
         run: |
           sudo apt-get update
-          sudo apt-get install -y dssi-dev liblo-dev libgtk2.0-dev libasound2-dev lv2-dev liblilv-dev lilv-utils
+          sudo apt-get install -y dssi-dev liblo-dev libgtk2.0-dev libasound2-dev lv2-dev liblilv-dev lilv-utils libx11-dev
+
+      - name: Set up the MSVC environment
+        if: matrix.toolchain == 'msvc'
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Set up MSYS2
-        if: matrix.os == 'windows-latest'
+        if: matrix.toolchain == 'mingw'
         uses: msys2/setup-msys2@v2
         with:
           msystem: MINGW64
@@ -83,7 +98,10 @@ jobs:
           path: |
             build/WhySynth.clap
             build/lv2/whysynth.lv2
-            build/auv2/WhySynth.component
+            build/wrapped/WhySynth.component
+            build/wrapped/WhySynth.app
+            build/wrapped/WhySynth
+            build/wrapped/Standalone-*/WhySynth.exe
             build/whysynth-render
             build/whysynth-render.exe
           if-no-files-found: ignore

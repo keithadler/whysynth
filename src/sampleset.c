@@ -27,7 +27,7 @@
 #include <string.h>
 #include <errno.h>
 #include <math.h>
-#include <pthread.h>
+#include "y_thread.h"
 
 #include "whysynth_types.h"
 #include "whysynth.h"
@@ -47,20 +47,20 @@
 static inline void
 signal_worker_thread(void)
 {
-    pthread_mutex_lock(&global.signal_mutex);
+    y_mutex_lock(&global.signal_mutex);
     global.signal_pending = 1;
-    pthread_cond_signal(&global.signal_cond);
-    pthread_mutex_unlock(&global.signal_mutex);
+    y_cond_signal(&global.signal_cond);
+    y_mutex_unlock(&global.signal_mutex);
 }
 
 static inline void
 wait_for_signal(void)
 {
-    pthread_mutex_lock(&global.signal_mutex);
+    y_mutex_lock(&global.signal_mutex);
     while (!global.signal_pending)
-        pthread_cond_wait(&global.signal_cond, &global.signal_mutex);
+        y_cond_wait(&global.signal_cond, &global.signal_mutex);
     global.signal_pending = 0;
-    pthread_mutex_unlock(&global.signal_mutex);
+    y_mutex_unlock(&global.signal_mutex);
 }
 
 void
@@ -167,9 +167,9 @@ sampleset_dummy_render(y_sample_t *sample)
 int
 sampleset_init(void)
 {
-    pthread_mutex_init(&global.sampleset_mutex, NULL);
-    pthread_mutex_init(&global.signal_mutex, NULL);
-    pthread_cond_init(&global.signal_cond, NULL);
+    y_mutex_init(&global.sampleset_mutex);
+    y_mutex_init(&global.signal_mutex);
+    y_cond_init(&global.signal_cond);
     global.signal_pending = 0;
     global.worker_thread_started = 0;
     global.worker_thread_done = 0;
@@ -185,7 +185,7 @@ sampleset_init(void)
 
     /* create non-realtime worker thread */
     /* -FIX- optionally set this nice or low-priority SCHED_FIFO or SCHED_RR? */
-    if (pthread_create(&global.worker_thread, NULL, sampleset_worker_function, NULL)) {
+    if (y_thread_create(&global.worker_thread, sampleset_worker_function, NULL)) {
         YDB_MESSAGE(-1, " sampleset_init: could not create worker thread: %s\n", strerror(errno));
         padsynth_fini();
         return 0;
@@ -229,7 +229,7 @@ sampleset_cleanup(y_synth_t *synth)
         synth->osc3.sampleset ||
         synth->osc4.sampleset) {
 
-        pthread_mutex_lock(&global.sampleset_mutex);
+        y_mutex_lock(&global.sampleset_mutex);
 
         if (synth->osc1.sampleset) sampleset_release(synth->osc1.sampleset);
         if (synth->osc2.sampleset) sampleset_release(synth->osc2.sampleset);
@@ -237,7 +237,7 @@ sampleset_cleanup(y_synth_t *synth)
         if (synth->osc4.sampleset) sampleset_release(synth->osc4.sampleset);
 
         signal_worker_thread();
-        pthread_mutex_unlock(&global.sampleset_mutex);
+        y_mutex_unlock(&global.sampleset_mutex);
     }
 }
 
@@ -252,11 +252,11 @@ sampleset_fini(void)
         global.worker_thread_done = 1;
         signal_worker_thread();
         YDB_MESSAGE(YDB_SAMPLE, " sampleset_fini: waiting for worker thread to exit\n");
-        pthread_join(global.worker_thread, NULL);
+        y_thread_join(global.worker_thread);
     }
 
-    pthread_cond_destroy(&global.signal_cond);
-    pthread_mutex_destroy(&global.signal_mutex);
+    y_cond_destroy(&global.signal_cond);
+    y_mutex_destroy(&global.signal_mutex);
 
     /* free all sampleset resources */
     while (global.active_sampleset_list) {
@@ -310,7 +310,7 @@ sampleset_worker_function(void *arg)
 
         YDB_MESSAGE(YDB_SAMPLE, " sampleset_worker_function: what needs to be done?\n");
 
-        pthread_mutex_lock(&global.sampleset_mutex);
+        y_mutex_lock(&global.sampleset_mutex);
 
         /* loop until no samples needing to be rendered are found */
         do {
@@ -393,14 +393,14 @@ sampleset_worker_function(void *arg)
             if (needs_freeing_sample_list) {
                 YDB_MESSAGE(YDB_SAMPLE, " sampleset_worker_function: freeing unused samples\n");
 
-                pthread_mutex_unlock(&global.sampleset_mutex);
+                y_mutex_unlock(&global.sampleset_mutex);
 
                 for (sample = needs_freeing_sample_list; sample; sample = sample->next) {
                     YDB_MESSAGE(YDB_SAMPLE, " sampleset_worker_function: freeing unused sample %p\n", sample);
                     free(sample->data - 4);
                 }
                 
-                pthread_mutex_lock(&global.sampleset_mutex);
+                y_mutex_lock(&global.sampleset_mutex);
 
                 while (needs_freeing_sample_list) {
                     sample = needs_freeing_sample_list;
@@ -439,7 +439,7 @@ sampleset_worker_function(void *arg)
 
                 render_ss->ref_count--; /* now the sampleset can be freed */
 
-                pthread_mutex_unlock(&global.sampleset_mutex);
+                y_mutex_unlock(&global.sampleset_mutex);
 
                 if (sample->mode == Y_OSCILLATOR_MODE_PADSYNTH) {
                     rc = padsynth_render(sample);
@@ -447,7 +447,7 @@ sampleset_worker_function(void *arg)
                     rc = sampleset_dummy_render(sample);
                 }
 
-                pthread_mutex_lock(&global.sampleset_mutex);
+                y_mutex_lock(&global.sampleset_mutex);
 
                 if (rc) {
                     sample->next = global.active_sample_list;
@@ -464,7 +464,7 @@ sampleset_worker_function(void *arg)
 
         padsynth_free_temp();
 
-        pthread_mutex_unlock(&global.sampleset_mutex);
+        y_mutex_unlock(&global.sampleset_mutex);
 
         YDB_MESSAGE(YDB_SAMPLE, " sampleset_worker_function: all done for now.\n");
 
@@ -497,7 +497,7 @@ sampleset_check_oscillator(y_synth_t *synth, y_sosc_t *sosc,
                 param1 != ss->param1 || param2 != ss->param2 ||
                 param3 != ss->param3 || param4 != ss->param4) {
 
-                if (*changed || !pthread_mutex_trylock(&global.sampleset_mutex)) {
+                if (*changed || !y_mutex_trylock(&global.sampleset_mutex)) {
                     *changed = 1;
                     /* YDB_MESSAGE(YDB_SAMPLE, " sampleset_check_oscillator: change on oscillator %p\n", sosc); */
                     sampleset_release(sosc->sampleset);
@@ -506,7 +506,7 @@ sampleset_check_oscillator(y_synth_t *synth, y_sosc_t *sosc,
                 }
             }
         } else { /* set up new sampleset */
-            if (*changed || !pthread_mutex_trylock(&global.sampleset_mutex)) {
+            if (*changed || !y_mutex_trylock(&global.sampleset_mutex)) {
                 *changed = 1;
                 /* YDB_MESSAGE(YDB_SAMPLE, " sampleset_check_oscillator: new for oscillator %p\n", sosc); */
                 sosc->sampleset = sampleset_setup(sosc, (unsigned long)lrintf(synth->sample_rate), mode, waveform,
@@ -515,7 +515,7 @@ sampleset_check_oscillator(y_synth_t *synth, y_sosc_t *sosc,
         }
     } else {
         if (sosc->sampleset) { /* free sampleset resource we are no longer using */
-            if (*changed || !pthread_mutex_trylock(&global.sampleset_mutex)) {
+            if (*changed || !y_mutex_trylock(&global.sampleset_mutex)) {
                 *changed = 1;
                 /* YDB_MESSAGE(YDB_SAMPLE, " sampleset_check_oscillator: freeing for oscillator %p\n", sosc); */
                 sampleset_release(sosc->sampleset);
@@ -537,7 +537,7 @@ sampleset_check_oscillators(y_synth_t *synth)
 
     if (changed) {
         signal_worker_thread();
-        pthread_mutex_unlock(&global.sampleset_mutex);
+        y_mutex_unlock(&global.sampleset_mutex);
     }
 }
 

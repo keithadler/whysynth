@@ -24,7 +24,7 @@
 #include <string.h>
 #include <math.h>
 #include <ctype.h>
-#include <pthread.h>
+#include "y_thread.h"
 
 #include "whysynth_types.h"
 #include "whysynth.h"
@@ -349,7 +349,7 @@ load_patches(whysynth_engine_t *e, y_reader_t *r, char **errmsg)
     y_synth_t *synth = e->synth;
     int count = 0;
 
-    pthread_mutex_lock(&synth->patches_mutex);
+    y_mutex_lock(&synth->patches_mutex);
     while (1) {
         y_data_check_patches_allocation(synth, count);
         if (!y_data_read_patch_r(r, &synth->patches[count]))
@@ -358,7 +358,7 @@ load_patches(whysynth_engine_t *e, y_reader_t *r, char **errmsg)
     }
     if (count > (int)synth->patch_count)
         synth->patch_count = count;
-    pthread_mutex_unlock(&synth->patches_mutex);
+    y_mutex_unlock(&synth->patches_mutex);
 
     if (!count && errmsg)
         *errmsg = strdup("no patches recognized in patch data");
@@ -557,11 +557,11 @@ whysynth_engine_store_patch(whysynth_engine_t *e, int index, const char *name)
         memcpy(patch.category, synth->patches[e->program].category, sizeof(patch.category));
         memcpy(patch.comment, synth->patches[e->program].comment, sizeof(patch.comment));
     }
-    pthread_mutex_lock(&synth->patches_mutex);
+    y_mutex_lock(&synth->patches_mutex);
     y_data_check_patches_allocation(synth, index);
     memcpy(&synth->patches[index], &patch, sizeof(y_patch_t));
     if ((unsigned int)index == synth->patch_count) synth->patch_count++;
-    pthread_mutex_unlock(&synth->patches_mutex);
+    y_mutex_unlock(&synth->patches_mutex);
     return index;
 }
 
@@ -739,14 +739,14 @@ whysynth_engine_state_load(whysynth_engine_t *e, const char *buf, size_t size)
     if (npatches < 0 || count != npatches) { free(patches); { if (getenv("WHYSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; } }
 
     /* apply, bank first so a program index means something */
-    pthread_mutex_lock(&synth->patches_mutex);
+    y_mutex_lock(&synth->patches_mutex);
     if (npatches > 0) {
         y_data_check_patches_allocation(synth, npatches - 1);
         memcpy(synth->patches, patches, (size_t)npatches * sizeof(y_patch_t));
         synth->patch_count = (unsigned int)npatches;
     }
     synth->pending_patch_change = -1;
-    pthread_mutex_unlock(&synth->patches_mutex);
+    y_mutex_unlock(&synth->patches_mutex);
     free(patches);
 
     if (cancel >= 0) synth->program_cancel = cancel ? 1 : 0;

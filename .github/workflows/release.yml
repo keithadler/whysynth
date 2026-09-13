@@ -23,25 +23,24 @@ jobs:
             os: windows-latest
     defaults:
       run:
-        shell: ${{ matrix.os == 'windows-latest' && 'msys2 {0}' || 'bash' }}
+        shell: bash
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up MSYS2
+      - name: Install Linux dependencies (ALSA and X11, for the standalone's audio, MIDI and window)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libasound2-dev libx11-dev
+
+      # MSVC, because clap-wrapper's Windows standalone shell is C++/WinRT. The C runtime is
+      # linked statically (CMakeLists.txt), so the zip needs no redistributable.
+      - name: Set up the MSVC environment
         if: matrix.os == 'windows-latest'
-        uses: msys2/setup-msys2@v2
-        with:
-          msystem: MINGW64
-          update: true
-          install: >-
-            mingw-w64-x86_64-toolchain
-            mingw-w64-x86_64-cmake
-            mingw-w64-x86_64-ninja
-            git
-            zip
+        uses: ilammy/msvc-dev-cmd@v1
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DHEXTER_BUILD_DSSI=OFF ${{ matrix.os == 'windows-latest' && '-G Ninja' || '' }} ${{ matrix.os == 'macos-latest' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHYSYNTH_BUILD_DSSI=OFF ${{ matrix.os == 'windows-latest' && '-G Ninja' || '' }} ${{ matrix.os == 'macos-latest' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
 
       - name: Build
         run: cmake --build build --config Release --parallel
@@ -56,12 +55,19 @@ jobs:
           mkdir -p $PKG/patches
           cp -R build/WhySynth.clap $PKG/
           cp -R build/lv2/whysynth.lv2 $PKG/
-          [ -d build/auv2/WhySynth.component ] && cp -R build/auv2/WhySynth.component $PKG/ || true
+          [ -d build/wrapped/WhySynth.component ] && cp -R build/wrapped/WhySynth.component $PKG/ || true
+          # the standalone: WhySynth.app (macOS), WhySynth (Linux), WhySynth.exe (Windows)
+          [ -d build/wrapped/WhySynth.app ] && cp -R build/wrapped/WhySynth.app $PKG/ || true
+          [ -f build/wrapped/WhySynth ] && cp build/wrapped/WhySynth $PKG/ || true
+          cp build/wrapped/Standalone-*/WhySynth.exe $PKG/ 2>/dev/null || true
           cp build/whysynth-render* $PKG/ 2>/dev/null || true
           cp extra/*.WhySynth extra/COPYING-patches $PKG/patches/
           cp README.md CHANGELOG.md COPYING AUTHORS $PKG/
           if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
             tar czf $PKG.tar.gz $PKG
+          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+            # Git's bash on the runner has no zip; 7-Zip is preinstalled.
+            7z a -tzip -bd -bso0 $PKG.zip $PKG
           else
             zip -r -q $PKG.zip $PKG
           fi

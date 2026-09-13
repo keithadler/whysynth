@@ -46,8 +46,8 @@
 
 #include <stdio.h>
 #define Y_DEBUG_INIT(x)
-#define YDB_MESSAGE(type, fmt...) { if (Y_DEBUG & type) fprintf(stderr, "whysynth.so" fmt); }
-#define GDB_MESSAGE(type, fmt...) { if (Y_DEBUG & type) fprintf(stderr, "WhySynth_gtk" fmt); }
+#define YDB_MESSAGE(type, ...) { if (Y_DEBUG & type) fprintf(stderr, "whysynth.so" __VA_ARGS__); }
+#define GDB_MESSAGE(type, ...) { if (Y_DEBUG & type) fprintf(stderr, "WhySynth_gtk" __VA_ARGS__); }
 // -FIX-:
 // #include "message_buffer.h"
 // #define Y_DEBUG_INIT(x)  mb_init(x)
@@ -61,8 +61,8 @@
 
 #else  /* !Y_DEBUG */
 
-#define YDB_MESSAGE(type, fmt...)
-#define GDB_MESSAGE(type, fmt...)
+#define YDB_MESSAGE(type, ...)
+#define GDB_MESSAGE(type, ...)
 #define Y_DEBUG_INIT(x)
 
 #endif  /* Y_DEBUG */
