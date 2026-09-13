@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Fixed
+- Windows: the CLAP, the LV2 plugin and `whysynth-render.exe` in the 2.0.0 zip needed
+  `libwinpthread-1.dll`, MinGW's pthreads runtime, which a Windows machine has only when
+  MinGW is installed. The plugins failed to load and the tool stopped with
+  "libwinpthread-1.dll was not found" (the same defect Reaper10 reported against hexter on theabolton/hexter#18). The MinGW runtime is now linked statically,
+  so the zip stands on its own.
+
 ## 2.0.0 (2026-09-07)
 
 The revival release. Same synth, new plugin formats, new build.
