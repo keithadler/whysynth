@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.21)
 
 project(whysynth
-    VERSION 2.1.0
+    VERSION 2.1.1
     DESCRIPTION "Versatile multi-mode software synthesizer"
     HOMEPAGE_URL "https://github.com/keithadler/whysynth"
     LANGUAGES C)

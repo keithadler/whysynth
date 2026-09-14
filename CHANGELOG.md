@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.1 (2026-09-14)
 
 ### Fixed
 - The standalone could stop at startup with "Unable to configure audio: RtApi::getDeviceInfo:
