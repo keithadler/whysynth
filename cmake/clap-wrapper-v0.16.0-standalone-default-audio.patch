@@ -1,0 +1,104 @@
+diff --git a/src/detail/standalone/standalone_host_audio.cpp b/src/detail/standalone/standalone_host_audio.cpp
+index 8e3d888..2e3e0b4 100644
+--- a/src/detail/standalone/standalone_host_audio.cpp
++++ b/src/detail/standalone/standalone_host_audio.cpp
+@@ -13,6 +13,7 @@
+ #pragma GCC diagnostic pop
+ #endif
+ 
++#include <algorithm>
+ #include "standalone_host.h"
+ #include "entry.h"
+ 
+@@ -73,16 +74,62 @@ void StandaloneHost::setAudioApi(RtAudio::Api api)
+ std::tuple<unsigned int, unsigned int, int32_t> StandaloneHost::getDefaultAudioInOutSampleRate()
+ {
+   guaranteeRtAudioDAC();
++
++  // RtAudio answers 0 for a default device it could not settle on: on Windows, when the
++  // default endpoint failed to probe, or when there is no capture device at all. Asking
++  // getDeviceInfo about that 0 raises "deviceId argument not found" and nothing starts.
++  // Only trust an id that is in the device list; otherwise take the first device with
++  // channels in that direction, or none. Probing may report through the error callback,
++  // which would put a dialog in front of a user who can do nothing about it, so it is
++  // silenced here and the outcome is reported once instead.
++  auto dids = rtaDac->getDeviceIds();
++  auto known = [&](unsigned int id)
++  { return id != 0 && std::find(dids.begin(), dids.end(), id) != dids.end(); };
++
++  auto savedDisplay = displayAudioError;
++  displayAudioError = nullptr;
+   auto iid = rtaDac->getDefaultInputDevice();
+   auto oid = rtaDac->getDefaultOutputDevice();
+-  auto outInfo = rtaDac->getDeviceInfo(oid);
+-  auto sr = outInfo.currentSampleRate;
+-  if (sr < 1)
++  if (!known(oid))
++  {
++    oid = 0;
++    for (auto d : dids)
++    {
++      if (rtaDac->getDeviceInfo(d).outputChannels > 0)
++      {
++        oid = d;
++        break;
++      }
++    }
++  }
++  if (!known(iid))
+   {
+-    sr = outInfo.preferredSampleRate;
++    iid = 0;
+   }
++  displayAudioError = savedDisplay;
+ 
+-  return {iid, oid, (int32_t)sr};
++  int32_t sr = -1;
++  if (oid != 0)
++  {
++    auto outInfo = rtaDac->getDeviceInfo(oid);
++    sr = outInfo.currentSampleRate;
++    if (sr < 1)
++    {
++      sr = outInfo.preferredSampleRate;
++    }
++  }
++  else
++  {
++    LOGINFO("[ERROR] No audio output device could be used; running without audio");
++    if (displayAudioError)
++    {
++      displayAudioError(
++          "No audio output device could be opened. The plugin is running without sound; "
++          "choose an output in Audio/MIDI Settings.");
++    }
++  }
++
++  return {iid, oid, sr};
+ }
+ void StandaloneHost::startAudioThread()
+ {
+@@ -98,7 +145,8 @@ void StandaloneHost::startAudioThread()
+   else
+   {
+     auto [in, out, sr] = getDefaultAudioInOutSampleRate();
+-    startAudioThreadOn(in, 2, numAudioInputs > 0, out, 2, numAudioOutputs > 0, sr);
++    startAudioThreadOn(in, 2, in > 0 && numAudioInputs > 0, out, 2, out > 0 && numAudioOutputs > 0,
++                       sr);
+   }
+ }
+ 
+@@ -248,6 +296,13 @@ void StandaloneHost::startAudioThreadOn(unsigned int inputDeviceID, uint32_t inp
+     currentBufferSize = 256;
+   }
+ 
++  if (!useOutput && !useInput)
++  {
++    // Nothing to open. The window and MIDI stay up; a device chosen later starts the stream.
++    LOGINFO("[WARNING] No audio devices in use; audio thread not started");
++    return;
++  }
++
+   if (rtaDac->openStream((useOutput) ? &oParams : nullptr, (useInput) ? &iParams : nullptr,
+                          RTAUDIO_FLOAT32, sampleRate, &currentBufferSize, &rtaCallback, (void *)this,
+                          &options))

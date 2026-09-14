@@ -157,10 +157,22 @@ if(WHYSYNTH_WRAP_AUV2 OR WHYSYNTH_WRAP_STANDALONE)
     set(CLAP_WRAPPER_DOWNLOAD_DEPENDENCIES ON CACHE BOOL "" FORCE)
     set(CLAP_WRAPPER_BUILD_AUV2 ${WHYSYNTH_WRAP_AUV2} CACHE BOOL "" FORCE)
     set(CLAP_WRAPPER_BUILD_STANDALONE ${WHYSYNTH_WRAP_STANDALONE} CACHE BOOL "" FORCE)
+    if(WIN32)
+        # DirectSound as well as WASAPI, so Audio/MIDI Settings offers a second API when a
+        # device will not open through the first.
+        set(RTAUDIO_API_DS ON CACHE BOOL "" FORCE)
+    endif()
+    # The patch makes the standalone fall back to the first usable output device when RtAudio
+    # cannot name a default (on Windows: "RtApi::getDeviceInfo: deviceId argument not found"),
+    # and keep running without sound when there is none. Offered upstream; drop it when a
+    # clap-wrapper release carries it.
     FetchContent_Declare(clap-wrapper
         GIT_REPOSITORY https://github.com/free-audio/clap-wrapper.git
         GIT_TAG        v0.16.0
-        GIT_SHALLOW    TRUE)
+        GIT_SHALLOW    TRUE
+        PATCH_COMMAND  ${CMAKE_COMMAND} -DPATCH=${CMAKE_CURRENT_SOURCE_DIR}/cmake/clap-wrapper-v0.16.0-standalone-default-audio.patch
+                       -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/ApplyPatch.cmake
+        UPDATE_DISCONNECTED TRUE)
     FetchContent_MakeAvailable(clap-wrapper)
 
     add_library(whysynth_clap_impl STATIC plugins/clap/whysynth_clap.c)
