@@ -3,6 +3,9 @@ name: Release
 on:
   push:
     tags: ["v*"]
+  # A manual run builds and packages every platform and keeps the packages as workflow
+  # artifacts instead of uploading them to a release: a dry run for a new runner or toolchain.
+  workflow_dispatch:
 
 permissions:
   contents: write
@@ -17,10 +20,21 @@ jobs:
         include:
           - name: linux-x86_64
             os: ubuntu-latest
+            family: linux
+          - name: linux-aarch64
+            os: ubuntu-24.04-arm
+            family: linux
           - name: macos-universal
             os: macos-latest
+            family: macos
           - name: windows-x86_64
             os: windows-latest
+            family: windows
+            msvc_arch: x64
+          - name: windows-arm64
+            os: windows-11-arm
+            family: windows
+            msvc_arch: arm64
     defaults:
       run:
         shell: bash
@@ -28,7 +42,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Install Linux dependencies (ALSA and X11, for the standalone's audio, MIDI and window)
-        if: matrix.os == 'ubuntu-latest'
+        if: matrix.family == 'linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libasound2-dev libx11-dev
@@ -36,11 +50,17 @@ jobs:
       # MSVC, because clap-wrapper's Windows standalone shell is C++/WinRT. The C runtime is
       # linked statically (CMakeLists.txt), so the zip needs no redistributable.
       - name: Set up the MSVC environment
-        if: matrix.os == 'windows-latest'
+        if: matrix.family == 'windows'
         uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: ${{ matrix.msvc_arch }}
+
+      - name: Ninja, if the runner image lacks it
+        if: matrix.family == 'windows'
+        run: command -v ninja || pip install ninja
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHYSYNTH_BUILD_DSSI=OFF ${{ matrix.os == 'windows-latest' && '-G Ninja' || '' }} ${{ matrix.os == 'macos-latest' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHYSYNTH_BUILD_DSSI=OFF ${{ matrix.family == 'windows' && '-G Ninja' || '' }} ${{ matrix.family == 'macos' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
 
       - name: Build
         run: cmake --build build --config Release --parallel
@@ -63,9 +83,9 @@ jobs:
           cp build/whysynth-render* $PKG/ 2>/dev/null || true
           cp extra/*.WhySynth extra/COPYING-patches $PKG/patches/
           cp README.md CHANGELOG.md COPYING AUTHORS $PKG/
-          if [ "${{ matrix.os }}" = "ubuntu-latest" ]; then
+          if [ "${{ matrix.family }}" = "linux" ]; then
             tar czf $PKG.tar.gz $PKG
-          elif [ "${{ matrix.os }}" = "windows-latest" ]; then
+          elif [ "${{ matrix.family }}" = "windows" ]; then
             # Git's bash on the runner has no zip; 7-Zip is preinstalled.
             7z a -tzip -bd -bso0 $PKG.zip $PKG
           else
@@ -73,7 +93,17 @@ jobs:
           fi
           ls -la
 
+      - name: Keep the package as an artifact (manual run)
+        if: github.event_name == 'workflow_dispatch'
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ matrix.name }}
+          path: |
+            *.tar.gz
+            *.zip
+
       - name: Upload to the release
+        if: startsWith(github.ref, 'refs/tags/')
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}

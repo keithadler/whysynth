@@ -1,5 +1,14 @@
 # Changelog
 
+## Unreleased
+
+### Added
+- Release packages for Linux arm64 and Windows on ARM, built on GitHub's ARM runners: every
+  plugin, the standalone and the render tool, the same as the x86 packages. The macOS
+  package was already universal. Asked for on theabolton/hexter#18.
+- The release workflow can be run by hand as a dry run: it builds and packages every
+  platform and keeps the packages as workflow artifacts, without touching a release.
+
 ## 2.1.1 (2026-09-14)
 
 ### Fixed

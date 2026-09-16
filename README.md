@@ -17,7 +17,7 @@ libraries are installed.
 |---|---|
 | Plugins | CLAP (`WhySynth.clap`), LV2 (`whysynth.lv2`), Audio Unit (`WhySynth.component`, macOS), DSSI (legacy, Linux) |
 | Standalone | `WhySynth.app` (macOS), `WhySynth` (Linux), `WhySynth.exe` (Windows): its own window, audio and MIDI, no host needed |
-| Platforms | Linux, macOS (Apple silicon and Intel), Windows |
+| Platforms | Linux (x86_64 and arm64), macOS (Apple silicon and Intel), Windows (x64 and arm64) |
 | Patches | `.WhySynth` text files; the factory bank is built in |
 | License | GPL-2.0-or-later; the patches are public domain |
 
