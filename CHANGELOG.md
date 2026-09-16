@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.1.2 (2026-09-17)
 
 ### Added
 - Release packages for Linux arm64 and Windows on ARM, built on GitHub's ARM runners: every
