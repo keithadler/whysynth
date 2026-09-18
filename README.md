@@ -1,5 +1,9 @@
 # WhySynth
 
+[![CI](https://github.com/keithadler/whysynth/actions/workflows/ci.yml/badge.svg)](https://github.com/keithadler/whysynth/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/keithadler/whysynth?sort=semver)](https://github.com/keithadler/whysynth/releases/latest)
+[![License](https://img.shields.io/github/license/keithadler/whysynth)](https://github.com/keithadler/whysynth/blob/master/COPYING)
+
 **A versatile software synthesizer, by Sean Bolton.** Four oscillators with
 eleven modes: minBLEP, wavecycle, chorused wavecycle, asynchronous granular,
 three kinds of FM, waveshaper, noise, PADsynth, and phase distortion. Two
