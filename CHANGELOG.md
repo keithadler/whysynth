@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.4 (2026-09-18)
+
+### Fixed
+- Windows standalone: the window was a bare title bar, which looked like a failed launch. That
+  is how clap-wrapper shows a plugin with no GUI, with the settings hidden in the system menu
+  behind the icon. The window now has a body that says the synth is running and where the menu
+  is, the same change as hexter 2.2.2. The README says so too.
+
 ## 2.1.3 (2026-09-17)
 
 ### Fixed

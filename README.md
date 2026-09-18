@@ -38,6 +38,12 @@ output device and sample rate. Plug in a keyboard and play. It has no editor, so
 patches with MIDI program change from the factory bank, or set `WHYSYNTH_DEFAULT_BANK` to a
 `.WhySynth` file before starting it (see below).
 
+**On Windows the window is small on purpose.** WhySynth has no controls to show, so the window
+is a short note saying it is running. *Audio/MIDI Settings*, and saving or loading its state,
+are in the menu behind the icon at the top left of the window; right-clicking the title bar
+opens the same menu. Versions before 2.1.4 showed only the title bar, which looked like a
+failed launch and was not one.
+
 **Logic Pro and GarageBand** use the Audio Unit. After copying it, restart
 Logic; it appears under AU Instruments as Keith Adler > WhySynth. It passes
 Apple's `auval`, which is the check Logic runs before listing a plugin.

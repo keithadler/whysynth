@@ -160,7 +160,7 @@ index 8e3d888..3b1158d 100644
                           RTAUDIO_FLOAT32, sampleRate, &currentBufferSize, &rtaCallback, (void *)this,
                           &options))
 diff --git a/src/detail/standalone/windows/windows_standalone.cpp b/src/detail/standalone/windows/windows_standalone.cpp
-index f0031ff..bca5e51 100644
+index f0031ff..4878fac 100644
 --- a/src/detail/standalone/windows/windows_standalone.cpp
 +++ b/src/detail/standalone/windows/windows_standalone.cpp
 @@ -884,8 +884,8 @@ Plugin::Plugin(std::shared_ptr<Clap::Plugin> clapPlugin, int nCmdShow)
@@ -206,7 +206,37 @@ index f0031ff..bca5e51 100644
  
              saveSettings();
              startAudio();
-@@ -1181,8 +1183,8 @@ Plugin::Plugin(std::shared_ptr<Clap::Plugin> clapPlugin, int nCmdShow)
+@@ -1152,8 +1154,28 @@ Plugin::Plugin(std::shared_ptr<Clap::Plugin> clapPlugin, int nCmdShow)
+   }
+   else
+   {
++    // A plugin with no GUI still needs a window a person can understand: a bare title bar looks
++    // like a launch failure, and it hides the settings in the system menu behind the icon.
++    // Say what is going on, and where the menu is.
+     setStyle(WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX);
+-    adjustSize(static_cast<uint32_t>(500 * scale), 0);
++    const uint32_t width = static_cast<uint32_t>(520 * scale);
++    const uint32_t height = static_cast<uint32_t>(150 * scale);
++    const int margin = static_cast<int>(16 * scale);
++    adjustSize(width, height);
++    std::string text = std::string(plugin.plugin->desc->name) +
++                       " is running. It has no window of its own: play it over MIDI, and it plays "
++                       "through the audio device chosen below.\r\n\r\n"
++                       "Audio/MIDI Settings, and saving, loading or resetting its state, are in the "
++                       "menu behind the icon at the top left of this window. Right-clicking the title "
++                       "bar opens the same menu.";
++    HWND label = ::CreateWindowExW(0, L"STATIC", toUTF16(text).c_str(),
++                                   WS_CHILD | WS_VISIBLE | SS_LEFT | SS_NOPREFIX, margin, margin,
++                                   static_cast<int>(width) - 2 * margin, static_cast<int>(height) - 2 * margin,
++                                   hwnd.get(), nullptr, nullptr, nullptr);
++    if (label)
++    {
++      ::SendMessageW(label, WM_SETFONT, reinterpret_cast<WPARAM>(::GetStockObject(DEFAULT_GUI_FONT)), TRUE);
++    }
+     toggleCentered(true);
+   }
+ 
+@@ -1181,8 +1203,8 @@ Plugin::Plugin(std::shared_ptr<Clap::Plugin> clapPlugin, int nCmdShow)
    refreshBufferSizes();
  
    settings.api.set(sah->audioApiDisplayName);
@@ -217,7 +247,7 @@ index f0031ff..bca5e51 100644
    settings.sampleRate.set(std::to_string(sah->currentSampleRate));
    settings.bufferSize.set(std::to_string(sah->currentBufferSize));
  
-@@ -1423,13 +1425,16 @@ void Plugin::initializeAudio(RtAudio::Api api)
+@@ -1423,13 +1445,16 @@ void Plugin::initializeAudio(RtAudio::Api api)
  
    auto [input, output, sampleRate]{sah->getDefaultAudioInOutSampleRate()};
  
