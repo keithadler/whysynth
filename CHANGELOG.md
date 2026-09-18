@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.1.3 (2026-09-17)
+
+### Fixed
+- Windows standalone: "Unable to configure audio: RtApi::getDeviceInfo: deviceId argument
+  not found" on a machine with no microphone, or whose default output failed to probe. The
+  same fix as hexter 2.2.1: 2.1.1 stopped the engine asking RtAudio about the missing
+  device, but the Windows window still asked for its name and sample rates, and forced the
+  input direction open, before the first window appeared. Every lookup is guarded now; a
+  missing direction shows as "None" in Audio/MIDI Settings and is not opened.
+
 ## 2.1.2 (2026-09-17)
 
 ### Added
