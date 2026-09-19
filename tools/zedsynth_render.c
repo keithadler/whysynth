@@ -290,7 +290,7 @@ usage(void)
         "  zedsynth-render --bank FILE --list\n"
         "\n"
         "options:\n"
-        "  --bank FILE       ZedSynth patch file (.ZedSynth)\n"
+        "  --bank FILE       patch bank file, including any .WhySynth bank\n"
         "  --program N       patch number, 1-based (default 1)\n"
         "  --note N          MIDI note to play (repeat for a chord)\n"
         "  --velocity V      1-127 (default 100)\n"

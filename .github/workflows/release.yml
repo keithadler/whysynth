@@ -81,7 +81,7 @@ jobs:
           [ -f build/wrapped/ZedSynth ] && cp build/wrapped/ZedSynth $PKG/ || true
           cp build/wrapped/Standalone-*/ZedSynth.exe $PKG/ 2>/dev/null || true
           cp build/zedsynth-render* $PKG/ 2>/dev/null || true
-          cp extra/*.ZedSynth extra/COPYING-patches $PKG/patches/
+          cp extra/*.WhySynth extra/COPYING-patches $PKG/patches/   # the banks keep their names
           cp README.md CHANGELOG.md COPYING AUTHORS $PKG/
           if [ "${{ matrix.family }}" = "linux" ]; then
             tar czf $PKG.tar.gz $PKG
