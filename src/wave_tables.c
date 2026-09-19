@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2005-2008, 2010 Sean Bolton.
  *
@@ -1459,7 +1459,7 @@ struct wavetable wavetable[] =
     },
     { "Brass|Soft Brass",  /* SQ-80 waveform 43 'brass' excerpt */
     /* This is the SQ-80 waveform 43 'brass' with the lowest sample omitted,
-     * which matches the 'Soft Brass' patch of the original 20051005 WhySynth
+     * which matches the 'Soft Brass' patch of the original 20051005 ZedSynth
      * release. */
 #ifdef Y_GUI
       0
@@ -1631,7 +1631,7 @@ struct wavetable wavetable[] =
     { "Keyboard|Piano Hi",  /* SQ-80 waveform 9 'piano' excerpt */
     /* This is the SQ-80 'piano' wavetable without the lowest three
      * waves, which were four cycles long, and were left out of the
-     * first WhySynth release.  See 'Piano Full' for more information. */
+     * first ZedSynth release.  See 'Piano Full' for more information. */
 #ifdef Y_GUI
       0
 #endif

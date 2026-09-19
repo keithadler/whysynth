@@ -74,8 +74,8 @@ jobs:
       - name: Check the LV2 bundle with lilv-utils
         if: matrix.os == 'ubuntu-latest'
         run: |
-          LV2_PATH=$PWD/build/lv2 lv2ls | grep -q keithadler/whysynth
-          LV2_PATH=$PWD/build/lv2 lv2info https://github.com/keithadler/whysynth
+          LV2_PATH=$PWD/build/lv2 lv2ls | grep -q keithadler/zedsynth
+          LV2_PATH=$PWD/build/lv2 lv2info https://github.com/keithadler/zedsynth
 
       - name: Validate with clap-validator
         shell: bash
@@ -89,19 +89,19 @@ jobs:
           V=$(find . -type f \( -name clap-validator -o -name clap-validator.exe \) | head -1)
           chmod +x "$V"
           cd ..
-          "validator/$V" validate --only-failed build/WhySynth.clap
+          "validator/$V" validate --only-failed build/ZedSynth.clap
 
       - name: Upload build
         uses: actions/upload-artifact@v4
         with:
-          name: whysynth-${{ matrix.name }}
+          name: zedsynth-${{ matrix.name }}
           path: |
-            build/WhySynth.clap
-            build/lv2/whysynth.lv2
-            build/wrapped/WhySynth.component
-            build/wrapped/WhySynth.app
-            build/wrapped/WhySynth
-            build/wrapped/Standalone-*/WhySynth.exe
-            build/whysynth-render
-            build/whysynth-render.exe
+            build/ZedSynth.clap
+            build/lv2/zedsynth.lv2
+            build/wrapped/ZedSynth.component
+            build/wrapped/ZedSynth.app
+            build/wrapped/ZedSynth
+            build/wrapped/Standalone-*/ZedSynth.exe
+            build/zedsynth-render
+            build/zedsynth-render.exe
           if-no-files-found: ignore

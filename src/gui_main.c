@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer GUI
+/* ZedSynth DSSI software synthesizer GUI
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  *
@@ -36,8 +36,8 @@
 #include <lo/lo.h>
 #include <dssi.h>
  
-#include "whysynth_types.h"
-#include "whysynth.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
 #include "gui_callbacks.h"
 #include "gui_interface.h"
 #include "common_data.h"
@@ -282,7 +282,7 @@ get_tmp_directory(void)
     gchar *filename;
     struct stat buf;
 
-    filename = g_strconcat(g_get_home_dir(), "/.whysynth", NULL);
+    filename = g_strconcat(g_get_home_dir(), "/.zedsynth", NULL);
     if (!stat(filename, &buf)) { /* file exists */
         if (S_ISDIR(buf.st_mode)) {
             return filename;
@@ -305,7 +305,7 @@ create_patches_tmp_filename(const char *path)
     int i;
     char *dir = get_tmp_directory();
 
-    snprintf(patches_tmp_filename, PATH_MAX, "%s/WhySynth_patches-%s", dir, path);
+    snprintf(patches_tmp_filename, PATH_MAX, "%s/ZedSynth_patches-%s", dir, path);
     for (i = strlen(dir) + 1; i < strlen(patches_tmp_filename); i++) {
         if (patches_tmp_filename[i] == '/')
             patches_tmp_filename[i] = '_';
@@ -315,7 +315,7 @@ create_patches_tmp_filename(const char *path)
 
 /* ==== main ==== */
 
-char *test_argv[5] = { NULL, NULL, "-", "-", "whysynth" };
+char *test_argv[5] = { NULL, NULL, "-", "-", "zedsynth" };
 
 int
 main(int argc, char *argv[])
@@ -324,12 +324,12 @@ main(int argc, char *argv[])
     lo_server osc_server;
     gint osc_server_socket_tag;
 
-    Y_DEBUG_INIT("WhySynth_gtk");
+    Y_DEBUG_INIT("ZedSynth_gtk");
 
 #ifdef Y_DEBUG
     GDB_MESSAGE(GDB_MAIN, " starting (pid %d)...\n", getpid());
 #else
-    fprintf(stderr, "WhySynth_gtk starting (pid %d)...\n", getpid());
+    fprintf(stderr, "ZedSynth_gtk starting (pid %d)...\n", getpid());
 #endif
     /* { int i; fprintf(stderr, "args:\n"); for(i=0; i<argc; i++) printf("%d: %s\n", i, argv[i]); } // debug */
     
@@ -387,7 +387,7 @@ main(int argc, char *argv[])
 
     /* add OSC server socket to GTK+'s watched I/O */
     if (lo_server_get_socket_fd(osc_server) < 0) {
-        fprintf(stderr, "WhySynth_gtk fatal: OSC transport does not support exposing socket fd\n");
+        fprintf(stderr, "ZedSynth_gtk fatal: OSC transport does not support exposing socket fd\n");
         exit(1);
     }
     osc_server_socket_tag = gdk_input_add(lo_server_get_socket_fd(osc_server),

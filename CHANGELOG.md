@@ -1,5 +1,30 @@
 # Changelog
 
+## 3.0.0 (2026-09-19)
+
+### Changed
+- **WhySynth is now ZedSynth.** Sean Bolton, who wrote WhySynth, is taking his own work
+  in a different direction, toward Cortex-M7 hardware, and asked that this line of
+  development carry a name of its own. He gave it his blessing and will link to it as a
+  successor to the Xsynth, Xsynth-DSSI and WhySynth line. The new name follows the joke
+  the family was already telling: X, then Why, now Zed.
+- The plugin identifiers changed with the name: the CLAP id is now
+  `com.github.keithadler.zedsynth` and the LV2 URI is
+  `https://github.com/keithadler/zedsynth`. **A host will not find the plugin in an old
+  session**, because it looks the instrument up by that identifier. Load ZedSynth and
+  load your patch into it.
+- Products are renamed to match: `ZedSynth.clap`, `zedsynth.lv2`, `ZedSynth.component`,
+  `ZedSynth.app`, `zedsynth-render`. Source files that carried the old name were renamed
+  with it.
+
+### Kept
+- Every `.WhySynth` patch bank still loads. Banks are read by content, not by file name,
+  and the seven historical banks still ship exactly as they were.
+- `WHYSYNTH_DEFAULT_BANK` still works, and is used when `ZEDSYNTH_DEFAULT_BANK` is unset.
+- The DSSI editor still recognizes an instance tag written by the old name.
+- `ChangeLog`, `AUTHORS`, the 2017 README and the wavetable guide are untouched. They
+  record where this synth came from and who wrote it.
+
 ## 2.1.4 (2026-09-18)
 
 ### Fixed

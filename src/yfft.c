@@ -1,4 +1,4 @@
-/* WhySynth - real FFT wrappers over KISS FFT, in FFTW halfcomplex layout
+/* ZedSynth - real FFT wrappers over KISS FFT, in FFTW halfcomplex layout
  *
  * Copyright (C) 2026 Keith Adler. GPL-2.0-or-later.
  */

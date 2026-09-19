@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer GUI
+/* ZedSynth DSSI software synthesizer GUI
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  *
@@ -23,7 +23,7 @@
 
 #include <gtk/gtk.h>
 
-#include "whysynth_types.h"
+#include "zedsynth_types.h"
 
 void on_menu_open_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_menu_save_activate(GtkMenuItem *menuitem, gpointer user_data);

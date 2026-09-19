@@ -60,7 +60,7 @@ jobs:
         run: command -v ninja || pip install ninja
 
       - name: Configure
-        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DWHYSYNTH_BUILD_DSSI=OFF ${{ matrix.family == 'windows' && '-G Ninja' || '' }} ${{ matrix.family == 'macos' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
+        run: cmake -B build -DCMAKE_BUILD_TYPE=Release -DZEDSYNTH_BUILD_DSSI=OFF ${{ matrix.family == 'windows' && '-G Ninja' || '' }} ${{ matrix.family == 'macos' && '-DCMAKE_OSX_ARCHITECTURES="arm64;x86_64"' || '' }}
 
       - name: Build
         run: cmake --build build --config Release --parallel
@@ -71,17 +71,17 @@ jobs:
       - name: Package
         run: |
           VERSION=${GITHUB_REF_NAME#v}
-          PKG=whysynth-$VERSION-${{ matrix.name }}
+          PKG=zedsynth-$VERSION-${{ matrix.name }}
           mkdir -p $PKG/patches
-          cp -R build/WhySynth.clap $PKG/
-          cp -R build/lv2/whysynth.lv2 $PKG/
-          [ -d build/wrapped/WhySynth.component ] && cp -R build/wrapped/WhySynth.component $PKG/ || true
-          # the standalone: WhySynth.app (macOS), WhySynth (Linux), WhySynth.exe (Windows)
-          [ -d build/wrapped/WhySynth.app ] && cp -R build/wrapped/WhySynth.app $PKG/ || true
-          [ -f build/wrapped/WhySynth ] && cp build/wrapped/WhySynth $PKG/ || true
-          cp build/wrapped/Standalone-*/WhySynth.exe $PKG/ 2>/dev/null || true
-          cp build/whysynth-render* $PKG/ 2>/dev/null || true
-          cp extra/*.WhySynth extra/COPYING-patches $PKG/patches/
+          cp -R build/ZedSynth.clap $PKG/
+          cp -R build/lv2/zedsynth.lv2 $PKG/
+          [ -d build/wrapped/ZedSynth.component ] && cp -R build/wrapped/ZedSynth.component $PKG/ || true
+          # the standalone: ZedSynth.app (macOS), ZedSynth (Linux), ZedSynth.exe (Windows)
+          [ -d build/wrapped/ZedSynth.app ] && cp -R build/wrapped/ZedSynth.app $PKG/ || true
+          [ -f build/wrapped/ZedSynth ] && cp build/wrapped/ZedSynth $PKG/ || true
+          cp build/wrapped/Standalone-*/ZedSynth.exe $PKG/ 2>/dev/null || true
+          cp build/zedsynth-render* $PKG/ 2>/dev/null || true
+          cp extra/*.ZedSynth extra/COPYING-patches $PKG/patches/
           cp README.md CHANGELOG.md COPYING AUTHORS $PKG/
           if [ "${{ matrix.family }}" = "linux" ]; then
             tar czf $PKG.tar.gz $PKG
@@ -108,6 +108,6 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          for f in whysynth-*.tar.gz whysynth-*.zip; do
+          for f in zedsynth-*.tar.gz zedsynth-*.zip; do
             if [ -f "$f" ]; then gh release upload "$GITHUB_REF_NAME" "$f" --clobber; fi
           done

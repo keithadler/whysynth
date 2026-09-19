@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer GUI
+/* ZedSynth DSSI software synthesizer GUI
  *
  * Copyright (C) 2004-2017 Sean Bolton
  *
@@ -31,8 +31,8 @@
 #include <gtk/gtk.h>
 #include "gtkknob.h"
 
-#include "whysynth.h"
-#include "whysynth_ports.h"
+#include "zedsynth.h"
+#include "zedsynth_ports.h"
 #include "gui_callbacks.h"
 #include "gui_interface.h"
 #include "gui_images.h"
@@ -215,7 +215,7 @@ create_main_window (const char *tag)
     GdkPixbuf *icon;
 
     if ((icon = gtk_icon_theme_load_icon(gtk_icon_theme_get_default(),
-                                         "whysynth", 32, 0, NULL)) != NULL) {
+                                         "zedsynth", 32, 0, NULL)) != NULL) {
         gtk_window_set_default_icon(icon);
         g_object_unref(icon);
     }
@@ -352,7 +352,7 @@ create_main_window (const char *tag)
                             (GtkDestroyNotify) gtk_widget_unref);
   gtk_menu_item_set_submenu (GTK_MENU_ITEM (help1), help1_menu);
 
-  menu_about = gtk_menu_item_new_with_label ("About WhySynth");
+  menu_about = gtk_menu_item_new_with_label ("About ZedSynth");
   gtk_widget_ref (menu_about);
   gtk_object_set_data_full (GTK_OBJECT (main_window), "menu_about", menu_about,
                             (GtkDestroyNotify) gtk_widget_unref);
@@ -741,7 +741,7 @@ create_about_window (const char *tag)
 
     about_window = gtk_window_new (GTK_WINDOW_TOPLEVEL);
     gtk_object_set_data (GTK_OBJECT (about_window), "about_window", about_window);
-    gtk_window_set_title (GTK_WINDOW (about_window), "About WhySynth");
+    gtk_window_set_title (GTK_WINDOW (about_window), "About ZedSynth");
     gtk_widget_realize(about_window);  /* window must be realized for create_about_pixmap() */
 
     vbox2 = gtk_vbox_new (FALSE, 0);
@@ -979,7 +979,7 @@ create_import_file_chooser (void)
     GtkWidget *label;
     GtkWidget *position_spin;
 
-    import_file_chooser = gtk_file_chooser_dialog_new("WhySynth - Import Patches",
+    import_file_chooser = gtk_file_chooser_dialog_new("ZedSynth - Import Patches",
                                                     GTK_WINDOW (main_window),
                                                     GTK_FILE_CHOOSER_ACTION_OPEN,
                                                     GTK_STOCK_CANCEL,
@@ -2722,8 +2722,10 @@ create_windows(const char *instance_tag)
 
     /* build a nice identifier string for the window titles */
     if (strlen(instance_tag) == 0) {
-        strcpy(tag, "WhySynth");
-    } else if (strstr(instance_tag, "WhySynth") ||
+        strcpy(tag, "ZedSynth");
+    } else if (strstr(instance_tag, "ZedSynth") ||
+               strstr(instance_tag, "zedsynth") ||
+               strstr(instance_tag, "WhySynth") ||   /* a host that remembers the old name */
                strstr(instance_tag, "whysynth")) {
         if (strlen(instance_tag) > 49) {
             snprintf(tag, 50, "...%s", instance_tag + strlen(instance_tag) - 46); /* hope the unique info is at the end */
@@ -2732,9 +2734,9 @@ create_windows(const char *instance_tag)
         }
     } else {
         if (strlen(instance_tag) > 40) {
-            snprintf(tag, 50, "WhySynth ...%s", instance_tag + strlen(instance_tag) - 37);
+            snprintf(tag, 50, "ZedSynth ...%s", instance_tag + strlen(instance_tag) - 37);
         } else {
-            snprintf(tag, 50, "WhySynth %s", instance_tag);
+            snprintf(tag, 50, "ZedSynth %s", instance_tag);
         }
     }
 

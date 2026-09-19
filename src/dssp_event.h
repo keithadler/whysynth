@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2007 Sean Bolton and others.
  *
@@ -30,9 +30,9 @@
 #include "y_thread.h"
 
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_voice.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_voice.h"
 
 #define Y_MONO_MODE_OFF  0
 #define Y_MONO_MODE_ON   1
@@ -154,7 +154,7 @@ struct _y_synth_t {
     struct vmod     mod[Y_GLOBAL_MODS_COUNT];
     struct vlfo     glfo_vlfo;
 
-    /* LADSPA ports / WhySynth patch parameters */
+    /* LADSPA ports / ZedSynth patch parameters */
     y_sosc_t        osc1,
                     osc2,
                     osc3,

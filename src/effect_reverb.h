@@ -26,7 +26,7 @@
 
 #include <math.h>
 
-#include "whysynth_types.h"
+#include "zedsynth_types.h"
 
 struct OnePoleLP
 {

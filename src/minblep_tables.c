@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2008, 2010 Sean Bolton.
  *
@@ -18,7 +18,7 @@
  * Boston, MA 02110-1301 USA.
  */
 
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 
 /* minBLEP tables
  *

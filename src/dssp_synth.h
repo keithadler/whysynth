@@ -23,7 +23,7 @@
 
 #include <stdlib.h>
 
-#include "whysynth_types.h"
+#include "zedsynth_types.h"
 
 /* in dssp_synth.c: */
 int   dssp_voicelist_mutex_lock(y_synth_t *synth);

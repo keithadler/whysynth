@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  *
@@ -23,8 +23,8 @@
  * Boston, MA 02110-1301 USA.
  */
 
-#ifndef _WHYSYNTH_VOICE_H
-#define _WHYSYNTH_VOICE_H
+#ifndef _ZEDSYNTH_VOICE_H
+#define _ZEDSYNTH_VOICE_H
 
 #define _DEFAULT_SOURCE 1
 #define _ISOC99_SOURCE  1
@@ -34,8 +34,8 @@
 #include <math.h>
 
 
-#include "whysynth_types.h"
-#include "whysynth_ports.h"
+#include "zedsynth_types.h"
+#include "zedsynth_ports.h"
 
 /* control-calculation period, in samples; also the maximum size of a rendering
  * burst: */
@@ -320,7 +320,7 @@ extern float_value_delta y_step_dd_table[];
 
 extern float y_slope_dd_table[];
 
-/* in whysynth_voice.c */
+/* in zedsynth_voice.c */
 extern float eg_shape_coeffs[][4];
 y_voice_t *y_voice_new(y_synth_t *synth);
 void       y_voice_note_on(y_synth_t *synth, y_voice_t *voice,
@@ -331,7 +331,7 @@ void       y_voice_release_note(y_synth_t *synth, y_voice_t *voice);
 void       y_voice_set_ports(y_synth_t *synth, y_patch_t *patch);
 void       y_voice_update_pressure_mod(y_synth_t *synth, y_voice_t *voice);
 
-/* in whysynth_voice_render.c */
+/* in zedsynth_voice_render.c */
 extern float sine_wave[4 + SINETABLE_POINTS + 1];
 extern float volume_cv_to_amplitude_table[257];
 void y_init_tables(void);
@@ -382,5 +382,5 @@ y_voice_start_voice(y_voice_t *voice)
     /* -FIX- increment active voice count? */
 }
 
-#endif /* _WHYSYNTH_VOICE_H */
+#endif /* _ZEDSYNTH_VOICE_H */
 

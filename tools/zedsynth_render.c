@@ -1,7 +1,7 @@
-/* whysynth-render: render DX7 notes or a MIDI file to a WAV file, no host needed
+/* zedsynth-render: render DX7 notes or a MIDI file to a WAV file, no host needed
  *
  * Copyright (C) 2026 Keith Adler.
- * WhySynth is copyright (C) 2004-2017 Sean Bolton and others.
+ * ZedSynth is copyright (C) 2004-2017 Sean Bolton and others.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -25,7 +25,7 @@
 #include <math.h>
 #include <stdint.h>
 
-#include "whysynth_engine.h"
+#include "zedsynth_engine.h"
 
 #define BLOCK 256
 
@@ -283,14 +283,14 @@ static void
 usage(void)
 {
     fprintf(stderr,
-        "whysynth-render %s: render WhySynth patches to a WAV file\n"
+        "zedsynth-render %s: render ZedSynth patches to a WAV file\n"
         "\n"
-        "  whysynth-render [options] --note N [--note N ...]\n"
-        "  whysynth-render [options] --midi FILE.mid\n"
-        "  whysynth-render --bank FILE --list\n"
+        "  zedsynth-render [options] --note N [--note N ...]\n"
+        "  zedsynth-render [options] --midi FILE.mid\n"
+        "  zedsynth-render --bank FILE --list\n"
         "\n"
         "options:\n"
-        "  --bank FILE       WhySynth patch file (.WhySynth)\n"
+        "  --bank FILE       ZedSynth patch file (.ZedSynth)\n"
         "  --program N       patch number, 1-based (default 1)\n"
         "  --note N          MIDI note to play (repeat for a chord)\n"
         "  --velocity V      1-127 (default 100)\n"
@@ -306,19 +306,19 @@ usage(void)
         "  --tail S          seconds after the last MIDI event (default 3)\n"
         "  --out FILE        output WAV (default out.wav)\n"
         "  --list            print the patch names and exit\n",
-        WHYSYNTH_ENGINE_VERSION);
+        ZEDSYNTH_ENGINE_VERSION);
 }
 
 int
 main(int argc, char **argv)
 {
     const char *bank = NULL, *midi = NULL, *out_path = "out.wav";
-    int program = 1, velocity = 100, poly = WHYSYNTH_DEFAULT_POLYPHONY, mono = 0, list = 0;
+    int program = 1, velocity = 100, poly = ZEDSYNTH_DEFAULT_POLYPHONY, mono = 0, list = 0;
     double wait = 2.0, gain = 0.0;
     int notes[64], nnotes = 0;
     double hold = 2.0, seconds = -1.0, tail = 3.0, tuning = 440.0;
     uint32_t rate = 48000;
-    whysynth_engine_t *e;
+    zedsynth_engine_t *e;
     event_list_t events = { NULL, 0, 0 };
     double end_time = 0.0;
     int i;
@@ -347,54 +347,54 @@ main(int argc, char **argv)
     }
     if (rate < 8000 || rate > 384000) { fprintf(stderr, "sample rate out of range\n"); return 2; }
 
-    e = whysynth_engine_new((float)rate);
+    e = zedsynth_engine_new((float)rate);
     if (!e) { fprintf(stderr, "could not create engine\n"); return 1; }
 
     if (bank) {
         char *err = NULL;
-        int n = whysynth_engine_load_patches_file(e, bank, &err);
+        int n = zedsynth_engine_load_patches_file(e, bank, &err);
         if (!n) {
             fprintf(stderr, "could not load bank %s: %s\n", bank, err ? err : "unknown error");
             free(err);
-            whysynth_engine_free(e);
+            zedsynth_engine_free(e);
             return 1;
         }
         fprintf(stderr, "loaded %d patches from %s\n", n, bank);
     }
 
     if (list) {
-        for (i = 0; i < whysynth_engine_patch_count(e); i++)
-            printf("%3d  %s\n", i + 1, whysynth_engine_patch_name(e, i));
-        whysynth_engine_free(e);
+        for (i = 0; i < zedsynth_engine_patch_count(e); i++)
+            printf("%3d  %s\n", i + 1, zedsynth_engine_patch_name(e, i));
+        zedsynth_engine_free(e);
         return 0;
     }
 
     if (!midi && nnotes == 0) {
         usage();
-        whysynth_engine_free(e);
+        zedsynth_engine_free(e);
         return 2;
     }
 
-    whysynth_engine_set_polyphony(e, poly);
-    whysynth_engine_set_mono_mode(e, mono);
+    zedsynth_engine_set_polyphony(e, poly);
+    zedsynth_engine_set_mono_mode(e, mono);
     if (program < 1) program = 1;
-    if (program > whysynth_engine_patch_count(e)) program = whysynth_engine_patch_count(e);
-    whysynth_engine_select_program(e, program - 1);
-    whysynth_engine_set_param(e, 197, (float)tuning);
+    if (program > zedsynth_engine_patch_count(e)) program = zedsynth_engine_patch_count(e);
+    zedsynth_engine_select_program(e, program - 1);
+    zedsynth_engine_set_param(e, 197, (float)tuning);
     {
         /* PADsynth and wavetable oscillators render their tables on a
          * worker thread; give it a moment, running silence meanwhile */
         float l[BLOCK], r[BLOCK];
         uint64_t warm = (uint64_t)(wait * rate), done_w = 0;
         while (done_w < warm) {
-            whysynth_engine_render(e, l, r, BLOCK, NULL, 0);
+            zedsynth_engine_render(e, l, r, BLOCK, NULL, 0);
             done_w += BLOCK;
         }
-        whysynth_engine_reset(e);
+        zedsynth_engine_reset(e);
     }
 
     if (midi) {
-        if (!load_midi_file(midi, &events, &end_time)) { whysynth_engine_free(e); return 1; }
+        if (!load_midi_file(midi, &events, &end_time)) { zedsynth_engine_free(e); return 1; }
         if (seconds < 0.0) seconds = end_time + tail;
     } else {
         uint8_t msg[3];
@@ -422,10 +422,10 @@ main(int argc, char **argv)
         size_t next = 0;
         float bufl[BLOCK], bufr[BLOCK];
         float g = (float)pow(10.0, gain / 20.0);
-        whysynth_event_t evs[256];
+        zedsynth_event_t evs[256];
         double peak = 0.0;
 
-        if (!f) { fprintf(stderr, "cannot write %s\n", out_path); whysynth_engine_free(e); return 1; }
+        if (!f) { fprintf(stderr, "cannot write %s\n", out_path); zedsynth_engine_free(e); return 1; }
         write_wav_header(f, rate, (uint32_t)total);
 
         while (done < total) {
@@ -440,15 +440,15 @@ main(int argc, char **argv)
                     const timed_event_t *te = &events.v[next];
                     uint32_t frame = (uint32_t)(s < done ? 0 : s - done);
                     if (te->len)
-                        whysynth_event_from_midi(te->msg, te->len, frame, &evs[ne]);
+                        zedsynth_event_from_midi(te->msg, te->len, frame, &evs[ne]);
                     else
-                        whysynth_event_from_midi(te->sysex, te->sysex_len, frame, &evs[ne]);
+                        zedsynth_event_from_midi(te->sysex, te->sysex_len, frame, &evs[ne]);
                     if (evs[ne].type != Y_EV_NONE) ne++;
                 }
                 next++;
             }
 
-            whysynth_engine_render(e, bufl, bufr, n, evs, ne);
+            zedsynth_engine_render(e, bufl, bufr, n, evs, ne);
             for (k = 0; k < n; k++) {
                 float x = bufl[k] * g, y = bufr[k] * g;
                 if (x > 1.0f) x = 1.0f; if (x < -1.0f) x = -1.0f;
@@ -468,6 +468,6 @@ main(int argc, char **argv)
 
     for (i = 0; i < (int)events.n; i++) free(events.v[i].sysex);
     free(events.v);
-    whysynth_engine_free(e);
+    zedsynth_engine_free(e);
     return 0;
 }

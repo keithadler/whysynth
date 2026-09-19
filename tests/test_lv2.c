@@ -1,7 +1,7 @@
-/* WhySynth LV2 plugin test: load the bundle through lilv as a host would
+/* ZedSynth LV2 plugin test: load the bundle through lilv as a host would
  *
  * Copyright (C) 2026 Keith Adler. GPL-2.0-or-later.
- * Arguments: path to the built whysynth.lv2 bundle, path to the patch directory.
+ * Arguments: path to the built zedsynth.lv2 bundle, path to the patch directory.
  */
 
 #include <stdlib.h>
@@ -17,9 +17,9 @@
 #include <lv2/urid/urid.h>
 #include <lv2/presets/presets.h>
 
-#include "whysynth_lv2_ports.h"
+#include "zedsynth_lv2_ports.h"
 
-#define WHYSYNTH_URI "https://github.com/keithadler/whysynth"
+#define ZEDSYNTH_URI "https://github.com/keithadler/zedsynth"
 #define BLOCK 256
 
 static int failures = 0, checks = 0;
@@ -42,7 +42,7 @@ static LV2_URID_Unmap unmap = { NULL, unmap_uri };
 static uint8_t control_buf[8192];
 static uint8_t notify_buf[1024];
 static float outl[BLOCK], outr[BLOCK];
-static float params[WHYSYNTH_LV2_PARAM_COUNT];
+static float params[ZEDSYNTH_LV2_PARAM_COUNT];
 static float polyphony = 12.0f, mono = 0.0f, glide = 0.0f;
 static LV2_Atom_Forge forge;
 static LV2_Atom_Forge_Frame seq_frame;
@@ -100,15 +100,15 @@ main(int argc, char **argv)
     lilv_world_load_specifications(world);
     lilv_world_load_plugin_classes(world);
     plugins = lilv_world_get_all_plugins(world);
-    plugin_uri = lilv_new_uri(world, WHYSYNTH_URI);
+    plugin_uri = lilv_new_uri(world, ZEDSYNTH_URI);
     plugin = lilv_plugins_get_by_uri(plugins, plugin_uri);
-    CHECK(plugin != NULL, "bundle %s contains %s", bundle, WHYSYNTH_URI);
+    CHECK(plugin != NULL, "bundle %s contains %s", bundle, ZEDSYNTH_URI);
     if (!plugin) return 1;
 
     CHECK(lilv_plugin_get_num_ports(plugin) == LV2_PORT_COUNT, "%d ports, have %u", LV2_PORT_COUNT, lilv_plugin_get_num_ports(plugin));
     {
         LilvNode *name = lilv_plugin_get_name(plugin);
-        CHECK(name && !strcmp(lilv_node_as_string(name), "WhySynth"), "plugin name");
+        CHECK(name && !strcmp(lilv_node_as_string(name), "ZedSynth"), "plugin name");
         lilv_node_free(name);
     }
     /* every control port has a symbol, a default within its range */
@@ -154,7 +154,7 @@ main(int argc, char **argv)
     inst = lilv_plugin_instantiate(plugin, 48000.0, features);
     CHECK(inst != NULL, "instantiate");
     if (!inst) return 1;
-    for (i = 0; i < WHYSYNTH_LV2_PARAM_COUNT; i++) {
+    for (i = 0; i < ZEDSYNTH_LV2_PARAM_COUNT; i++) {
         const LilvPort *port = lilv_plugin_get_port_by_index(plugin, LV2_PORT_FIRST_PARAM + i);
         LilvNode *def = NULL;
         lilv_port_get_range(plugin, port, &def, NULL, NULL);

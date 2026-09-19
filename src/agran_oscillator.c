@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2005-2007, 2016, 2018 Sean Bolton and others.
  *
@@ -27,13 +27,13 @@
 #include <stdlib.h>
 #include <math.h>
 
-#include "whysynth.h"
+#include "zedsynth.h"
 #include "dssp_event.h"
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 #include "wave_tables.h"
 #include "agran_oscillator.h"
 
-#include "whysynth_voice_inline.h"
+#include "zedsynth_voice_inline.h"
 
 static inline void
 free_osc_active_grain_list(y_synth_t *synth, struct vosc *osc)

@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2008, 2010, 2012 Sean Bolton.
  *
@@ -21,7 +21,7 @@
 /* Ah, the gentle tedium of moving all possible conditionals outside
  * the inner loops!
  *
- * This file gets included twice from whysynth_voice_render.c, to
+ * This file gets included twice from zedsynth_voice_render.c, to
  * define both master (sync generating) and slave (hard syncing)
  * oscillator functions.
  *
@@ -381,7 +381,7 @@ BLOSC_THIS(tri, unsigned long sample_count, y_sosc_t *sosc,
 
         /* Setting pos to 0.5 * pw here starts the waveform at a zero crossing
          * for least startup noise, and maintains compatibility with the original
-         * Xsynth (which WhySynth inherited through Xsynth-DSSI; now, it's more
+         * Xsynth (which ZedSynth inherited through Xsynth-DSSI; now, it's more
          * important to not change the sound of existing patches.)  This does
          * cause a problem with certain patches where this wave is used in a
          * hard-synced slave oscillator: when the master resets the first time,

@@ -1,4 +1,4 @@
-/* WhySynth synthesizer core (formerly the LADSPA half of dssp_synth.c)
+/* ZedSynth synthesizer core (formerly the LADSPA half of dssp_synth.c)
  *
  * Copyright (C) 2005-2017 Sean Bolton and others.
  *
@@ -33,17 +33,17 @@
 #include <stdarg.h>
 #include "y_thread.h"
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_ports.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_ports.h"
 #include "dssp_event.h"
 #include "common_data.h"
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 #include "agran_oscillator.h"
 #include "wave_tables.h"
 #include "sampleset.h"
 #include "effects.h"
-#include "whysynth_core.h"
+#include "zedsynth_core.h"
 
 static y_mutex_t global_mutex = Y_MUTEX_INITIALIZER;
 y_global_t             global;

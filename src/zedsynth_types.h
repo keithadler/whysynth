@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2006 Sean Bolton and others.
  *
@@ -18,8 +18,8 @@
  * Boston, MA 02110-1301 USA.
  */
 
-#ifndef _WHYSYNTH_TYPES_H
-#define _WHYSYNTH_TYPES_H
+#ifndef _ZEDSYNTH_TYPES_H
+#define _ZEDSYNTH_TYPES_H
 
 typedef struct _y_global_t            y_global_t;
 typedef struct _y_sosc_t              y_sosc_t;
@@ -34,4 +34,4 @@ typedef struct _y_sample_t            y_sample_t;
 typedef struct _y_sampleset_t         y_sampleset_t;
 typedef struct _y_patch_t             y_patch_t;
 
-#endif /* _WHYSYNTH_TYPES_H */
+#endif /* _ZEDSYNTH_TYPES_H */

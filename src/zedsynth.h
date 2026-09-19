@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2006 Sean Bolton and others.
  *
@@ -21,8 +21,8 @@
  * Boston, MA 02110-1301 USA.
  */
 
-#ifndef _WHYSYNTH_H
-#define _WHYSYNTH_H
+#ifndef _ZEDSYNTH_H
+#define _ZEDSYNTH_H
 
 /* ==== debugging ==== */
 
@@ -46,8 +46,8 @@
 
 #include <stdio.h>
 #define Y_DEBUG_INIT(x)
-#define YDB_MESSAGE(type, ...) { if (Y_DEBUG & type) fprintf(stderr, "whysynth.so" __VA_ARGS__); }
-#define GDB_MESSAGE(type, ...) { if (Y_DEBUG & type) fprintf(stderr, "WhySynth_gtk" __VA_ARGS__); }
+#define YDB_MESSAGE(type, ...) { if (Y_DEBUG & type) fprintf(stderr, "zedsynth.so" __VA_ARGS__); }
+#define GDB_MESSAGE(type, ...) { if (Y_DEBUG & type) fprintf(stderr, "ZedSynth_gtk" __VA_ARGS__); }
 // -FIX-:
 // #include "message_buffer.h"
 // #define Y_DEBUG_INIT(x)  mb_init(x)
@@ -72,5 +72,5 @@
 #define Y_MAX_POLYPHONY     64
 #define Y_DEFAULT_POLYPHONY 12
 
-#endif /* _WHYSYNTH_H */
+#endif /* _ZEDSYNTH_H */
 

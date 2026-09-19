@@ -1,7 +1,7 @@
-/* WhySynth - CLAP plugin
+/* ZedSynth - CLAP plugin
  *
  * Copyright (C) 2026 Keith Adler.
- * WhySynth is copyright (C) 2004-2017 Sean Bolton and others.
+ * ZedSynth is copyright (C) 2004-2017 Sean Bolton and others.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -27,10 +27,10 @@
 
 #include <clap/clap.h>
 
-#include "whysynth_engine.h"
-#include "whysynth_clap_entry.h"
+#include "zedsynth_engine.h"
+#include "zedsynth_clap_entry.h"
 
-#define WHYSYNTH_CLAP_ID  "com.github.keithadler.whysynth"
+#define ZEDSYNTH_CLAP_ID  "com.github.keithadler.zedsynth"
 #define MAX_EVENTS        4096
 #define DEFAULT_RATE      48000.0f
 
@@ -56,69 +56,69 @@ typedef struct {
     const clap_host_log_t         *host_log;
     const clap_host_preset_load_t *host_preset_load;
 
-    whysynth_engine_t *engine;
+    zedsynth_engine_t *engine;
     float              sample_rate;
     uint32_t           max_frames;
     float             *left, *right;
-    whysynth_event_t   events[MAX_EVENTS];
+    zedsynth_event_t   events[MAX_EVENTS];
 
-    float              reported[WHYSYNTH_PORT_COUNT];  /* last values told to the host */
+    float              reported[ZEDSYNTH_PORT_COUNT];  /* last values told to the host */
     int                reported_program;
     bool               rescan_requested;
     bool               dirty_requested;
-} whysynth_clap_t;
+} zedsynth_clap_t;
 
 static void
-log_msg(whysynth_clap_t *h, clap_log_severity sev, const char *msg)
+log_msg(zedsynth_clap_t *h, clap_log_severity sev, const char *msg)
 {
     if (h->host_log) h->host_log->log(h->host, sev, msg);
-    else fprintf(stderr, "WhySynth: %s\n", msg);
+    else fprintf(stderr, "ZedSynth: %s\n", msg);
 }
 
 /* ---- descriptor ---- */
 
-static const char *whysynth_features[] = {
+static const char *zedsynth_features[] = {
     CLAP_PLUGIN_FEATURE_INSTRUMENT,
     CLAP_PLUGIN_FEATURE_SYNTHESIZER,
     CLAP_PLUGIN_FEATURE_STEREO,
     NULL
 };
 
-static const clap_plugin_descriptor_t whysynth_desc = {
+static const clap_plugin_descriptor_t zedsynth_desc = {
     .clap_version = CLAP_VERSION_INIT,
-    .id           = WHYSYNTH_CLAP_ID,
-    .name         = "WhySynth",
+    .id           = ZEDSYNTH_CLAP_ID,
+    .name         = "ZedSynth",
     .vendor       = "Sean Bolton and Keith Adler",
-    .url          = "https://github.com/keithadler/whysynth",
-    .manual_url   = "https://github.com/keithadler/whysynth#readme",
-    .support_url  = "https://github.com/keithadler/whysynth/issues",
-    .version      = WHYSYNTH_ENGINE_VERSION,
+    .url          = "https://github.com/keithadler/zedsynth",
+    .manual_url   = "https://github.com/keithadler/zedsynth#readme",
+    .support_url  = "https://github.com/keithadler/zedsynth/issues",
+    .version      = ZEDSYNTH_ENGINE_VERSION,
     .description  = "Versatile multi-mode synthesizer: 4 oscillators with minBLEP, wavecycle, granular, FM, PADsynth and phase distortion modes, 2 filters, 3 LFOs, 5 envelopes.",
-    .features     = whysynth_features,
+    .features     = zedsynth_features,
 };
 
 /* ---- engine lifetime ---- */
 
 static bool
-recreate_engine(whysynth_clap_t *h, float sample_rate)
+recreate_engine(zedsynth_clap_t *h, float sample_rate)
 {
     char *state = NULL;
     size_t n = 0;
-    whysynth_engine_t *e;
+    zedsynth_engine_t *e;
 
     if (h->engine) {
-        size_t cap = whysynth_engine_state_size(h->engine);
+        size_t cap = zedsynth_engine_state_size(h->engine);
         state = (char *)malloc(cap);
-        if (state) n = whysynth_engine_state_save(h->engine, state, cap);
+        if (state) n = zedsynth_engine_state_save(h->engine, state, cap);
     }
-    e = whysynth_engine_new(sample_rate);
+    e = zedsynth_engine_new(sample_rate);
     if (!e) {
         free(state);
         return false;
     }
-    if (state && n) whysynth_engine_state_load(e, state, n);
+    if (state && n) zedsynth_engine_state_load(e, state, n);
     free(state);
-    if (h->engine) whysynth_engine_free(h->engine);
+    if (h->engine) zedsynth_engine_free(h->engine);
     h->engine = e;
     h->sample_rate = sample_rate;
     return true;
@@ -163,7 +163,7 @@ static const clap_plugin_note_ports_t ext_note_ports = { note_ports_count, note_
 static uint32_t
 params_count(const clap_plugin_t *p)
 {
-    return WHYSYNTH_PARAM_COUNT + P_COUNT_EXTRA;
+    return ZEDSYNTH_PARAM_COUNT + P_COUNT_EXTRA;
 }
 
 static const char *
@@ -181,29 +181,29 @@ module_for(const char *name, char *buf, size_t size)
 static bool
 params_get_info(const clap_plugin_t *plugin, uint32_t index, clap_param_info_t *info)
 {
-    if (index >= WHYSYNTH_PARAM_COUNT + P_COUNT_EXTRA) return false;
+    if (index >= ZEDSYNTH_PARAM_COUNT + P_COUNT_EXTRA) return false;
     memset(info, 0, sizeof(*info));
-    if (index < WHYSYNTH_PARAM_COUNT) {
-        int port = (int)index + WHYSYNTH_PORT_FIRST_PARAM;
-        const whysynth_param_info_t *pi = whysynth_param_info(port);
+    if (index < ZEDSYNTH_PARAM_COUNT) {
+        int port = (int)index + ZEDSYNTH_PORT_FIRST_PARAM;
+        const zedsynth_param_info_t *pi = zedsynth_param_info(port);
         info->id = (clap_id)port;
         snprintf(info->name, sizeof(info->name), "%s", pi->name);
         module_for(pi->name, info->module, sizeof(info->module));
         info->flags = CLAP_PARAM_IS_AUTOMATABLE;
         if (pi->is_integer) info->flags |= CLAP_PARAM_IS_STEPPED;
-        if (pi->kind == WHYSYNTH_KIND_COMBO) info->flags |= CLAP_PARAM_IS_ENUM;
+        if (pi->kind == ZEDSYNTH_KIND_COMBO) info->flags |= CLAP_PARAM_IS_ENUM;
         info->min_value = pi->min;
         info->max_value = pi->max;
         info->default_value = pi->def;
         return true;
     }
-    switch (index - WHYSYNTH_PARAM_COUNT) {
+    switch (index - ZEDSYNTH_PARAM_COUNT) {
       case 0:
         info->id = P_POLYPHONY;
         snprintf(info->name, sizeof(info->name), "Polyphony");
         snprintf(info->module, sizeof(info->module), "Voice");
         info->flags = CLAP_PARAM_IS_STEPPED;
-        info->min_value = 1; info->max_value = WHYSYNTH_MAX_POLYPHONY; info->default_value = WHYSYNTH_DEFAULT_POLYPHONY;
+        info->min_value = 1; info->max_value = ZEDSYNTH_MAX_POLYPHONY; info->default_value = ZEDSYNTH_DEFAULT_POLYPHONY;
         return true;
       case 1:
         info->id = P_MONO_MODE;
@@ -234,18 +234,18 @@ params_get_info(const clap_plugin_t *plugin, uint32_t index, clap_param_info_t *
 static bool
 params_get_value(const clap_plugin_t *plugin, clap_id id, double *value)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
 
-    if (id >= WHYSYNTH_PORT_FIRST_PARAM && id < WHYSYNTH_PORT_COUNT) {
-        *value = whysynth_engine_get_param(h->engine, (int)id);
+    if (id >= ZEDSYNTH_PORT_FIRST_PARAM && id < ZEDSYNTH_PORT_COUNT) {
+        *value = zedsynth_engine_get_param(h->engine, (int)id);
         return true;
     }
     switch (id) {
-      case P_POLYPHONY:  *value = whysynth_engine_get_polyphony(h->engine); return true;
-      case P_MONO_MODE:  *value = whysynth_engine_get_mono_mode(h->engine); return true;
-      case P_GLIDE_MODE: *value = whysynth_engine_get_glide_mode(h->engine); return true;
+      case P_POLYPHONY:  *value = zedsynth_engine_get_polyphony(h->engine); return true;
+      case P_MONO_MODE:  *value = zedsynth_engine_get_mono_mode(h->engine); return true;
+      case P_GLIDE_MODE: *value = zedsynth_engine_get_glide_mode(h->engine); return true;
       case P_PROGRAM: {
-        int p = whysynth_engine_get_program(h->engine);
+        int p = zedsynth_engine_get_program(h->engine);
         *value = p < 0 ? 0 : p;
         return true;
       }
@@ -256,12 +256,12 @@ params_get_value(const clap_plugin_t *plugin, clap_id id, double *value)
 static bool
 params_value_to_text(const clap_plugin_t *plugin, clap_id id, double value, char *out, uint32_t out_size)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
     int v = (int)lrint(value);
 
-    if (id >= WHYSYNTH_PORT_FIRST_PARAM && id < WHYSYNTH_PORT_COUNT) {
-        const whysynth_param_info_t *pi = whysynth_param_info((int)id);
-        const char *name = whysynth_param_value_name((int)id, v);
+    if (id >= ZEDSYNTH_PORT_FIRST_PARAM && id < ZEDSYNTH_PORT_COUNT) {
+        const zedsynth_param_info_t *pi = zedsynth_param_info((int)id);
+        const char *name = zedsynth_param_value_name((int)id, v);
         if (name) snprintf(out, out_size, "%s", name);
         else if (pi->is_integer) snprintf(out, out_size, "%d", v);
         else if (id == 197) snprintf(out, out_size, "%.1f Hz", value);
@@ -279,7 +279,7 @@ params_value_to_text(const clap_plugin_t *plugin, clap_id id, double value, char
         snprintf(out, out_size, "%s", glide_mode_names[v < 0 ? 0 : (v > 4 ? 4 : v)]);
         return true;
       case P_PROGRAM: {
-        const char *name = whysynth_engine_patch_name(h->engine, v);
+        const char *name = zedsynth_engine_patch_name(h->engine, v);
         if (name) snprintf(out, out_size, "%d: %s", v + 1, name);
         else snprintf(out, out_size, "%d", v + 1);
         return true;
@@ -306,11 +306,11 @@ params_text_to_value(const clap_plugin_t *plugin, clap_id id, const char *text, 
         }
         if (best >= 0) { *value = best; return true; }
     }
-    if (id >= WHYSYNTH_PORT_FIRST_PARAM && id < WHYSYNTH_PORT_COUNT) {
-        const whysynth_param_info_t *pi = whysynth_param_info((int)id);
-        if (pi->kind == WHYSYNTH_KIND_COMBO) {
+    if (id >= ZEDSYNTH_PORT_FIRST_PARAM && id < ZEDSYNTH_PORT_COUNT) {
+        const zedsynth_param_info_t *pi = zedsynth_param_info((int)id);
+        if (pi->kind == ZEDSYNTH_KIND_COMBO) {
             for (i = (int)pi->min; i <= (int)pi->max; i++) {
-                const char *name = whysynth_param_value_name((int)id, i);
+                const char *name = zedsynth_param_value_name((int)id, i);
                 if (name && !strcmp(name, text)) { *value = i; return true; }
             }
         }
@@ -322,18 +322,18 @@ params_text_to_value(const clap_plugin_t *plugin, clap_id id, const char *text, 
 }
 
 static void
-apply_param_now(whysynth_clap_t *h, clap_id id, double value)
+apply_param_now(zedsynth_clap_t *h, clap_id id, double value)
 {
-    if (id >= WHYSYNTH_PORT_FIRST_PARAM && id < WHYSYNTH_PORT_COUNT) {
-        whysynth_engine_set_param(h->engine, (int)id, (float)value);
-        h->reported[id] = whysynth_engine_get_param(h->engine, (int)id);
+    if (id >= ZEDSYNTH_PORT_FIRST_PARAM && id < ZEDSYNTH_PORT_COUNT) {
+        zedsynth_engine_set_param(h->engine, (int)id, (float)value);
+        h->reported[id] = zedsynth_engine_get_param(h->engine, (int)id);
         return;
     }
     switch (id) {
-      case P_POLYPHONY:  whysynth_engine_set_polyphony(h->engine, (int)lrint(value)); break;
-      case P_MONO_MODE:  whysynth_engine_set_mono_mode(h->engine, (int)lrint(value)); break;
-      case P_GLIDE_MODE: whysynth_engine_set_glide_mode(h->engine, (int)lrint(value)); break;
-      case P_PROGRAM:    whysynth_engine_select_program(h->engine, (int)lrint(value)); break;
+      case P_POLYPHONY:  zedsynth_engine_set_polyphony(h->engine, (int)lrint(value)); break;
+      case P_MONO_MODE:  zedsynth_engine_set_mono_mode(h->engine, (int)lrint(value)); break;
+      case P_GLIDE_MODE: zedsynth_engine_set_glide_mode(h->engine, (int)lrint(value)); break;
+      case P_PROGRAM:    zedsynth_engine_select_program(h->engine, (int)lrint(value)); break;
       default: break;
     }
 }
@@ -341,7 +341,7 @@ apply_param_now(whysynth_clap_t *h, clap_id id, double value)
 static void
 params_flush(const clap_plugin_t *plugin, const clap_input_events_t *in, const clap_output_events_t *out)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
     uint32_t n = in->size(in), i;
 
     for (i = 0; i < n; i++) {
@@ -362,13 +362,13 @@ static const clap_plugin_params_t ext_params = {
 static bool
 state_save(const clap_plugin_t *plugin, const clap_ostream_t *stream)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
-    size_t cap = whysynth_engine_state_size(h->engine);
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
+    size_t cap = zedsynth_engine_state_size(h->engine);
     char *buf = (char *)malloc(cap);
     size_t n, done = 0;
 
     if (!buf) return false;
-    n = whysynth_engine_state_save(h->engine, buf, cap);
+    n = zedsynth_engine_state_save(h->engine, buf, cap);
     if (!n) { free(buf); return false; }
     while (done < n) {
         int64_t w = stream->write(stream, buf + done, n - done);
@@ -382,7 +382,7 @@ state_save(const clap_plugin_t *plugin, const clap_ostream_t *stream)
 static bool
 state_load(const clap_plugin_t *plugin, const clap_istream_t *stream)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
     size_t cap = 65536, size = 0;
     char *buf = (char *)malloc(cap);
     bool ok;
@@ -404,14 +404,14 @@ state_load(const clap_plugin_t *plugin, const clap_istream_t *stream)
         size += (size_t)r;
     }
     buf[size] = 0;
-    ok = whysynth_engine_state_load(h->engine, buf, size) != 0;
+    ok = zedsynth_engine_state_load(h->engine, buf, size) != 0;
     free(buf);
     if (!ok) {
-        log_msg(h, CLAP_LOG_WARNING, "state did not load: not a WhySynth state block");
+        log_msg(h, CLAP_LOG_WARNING, "state did not load: not a ZedSynth state block");
         return false;
     }
-    whysynth_engine_get_params(h->engine, h->reported);
-    h->reported_program = whysynth_engine_get_program(h->engine);
+    zedsynth_engine_get_params(h->engine, h->reported);
+    h->reported_program = zedsynth_engine_get_program(h->engine);
     h->rescan_requested = true;
     h->host->request_callback(h->host);
     return true;
@@ -419,21 +419,21 @@ state_load(const clap_plugin_t *plugin, const clap_istream_t *stream)
 
 static const clap_plugin_state_t ext_state = { state_save, state_load };
 
-/* ---- preset load: a WhySynth patch file ---- */
+/* ---- preset load: a ZedSynth patch file ---- */
 
 static bool
 preset_from_location(const clap_plugin_t *plugin, uint32_t location_kind, const char *location, const char *load_key)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
     char *err = NULL;
     int count;
 
     if (location_kind != CLAP_PRESET_DISCOVERY_LOCATION_FILE || !location) {
         if (h->host_preset_load)
-            h->host_preset_load->on_error(h->host, location_kind, location, load_key, -1, "WhySynth loads patch files only");
+            h->host_preset_load->on_error(h->host, location_kind, location, load_key, -1, "ZedSynth loads patch files only");
         return false;
     }
-    count = whysynth_engine_load_patches_file(h->engine, location, &err);
+    count = zedsynth_engine_load_patches_file(h->engine, location, &err);
     if (!count) {
         if (h->host_preset_load)
             h->host_preset_load->on_error(h->host, location_kind, location, load_key, -1, err ? err : "could not load patches");
@@ -443,9 +443,9 @@ preset_from_location(const clap_plugin_t *plugin, uint32_t location_kind, const 
     free(err);
     if (load_key && *load_key) {
         int p = atoi(load_key);
-        if (p >= 1) whysynth_engine_select_program(h->engine, p - 1);
+        if (p >= 1) zedsynth_engine_select_program(h->engine, p - 1);
     } else {
-        whysynth_engine_select_program(h->engine, 0);
+        zedsynth_engine_select_program(h->engine, 0);
     }
     if (h->host_preset_load) h->host_preset_load->loaded(h->host, location_kind, location, load_key);
     h->rescan_requested = true;
@@ -461,7 +461,7 @@ static const clap_plugin_preset_load_t ext_preset_load = { preset_from_location 
 static bool
 plugin_init(const clap_plugin_t *plugin)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
 
     h->host_params = (const clap_host_params_t *)h->host->get_extension(h->host, CLAP_EXT_PARAMS);
     h->host_state  = (const clap_host_state_t *)h->host->get_extension(h->host, CLAP_EXT_STATE);
@@ -471,17 +471,17 @@ plugin_init(const clap_plugin_t *plugin)
         h->host_preset_load = (const clap_host_preset_load_t *)h->host->get_extension(h->host, CLAP_EXT_PRESET_LOAD_COMPAT);
 
     if (!recreate_engine(h, DEFAULT_RATE)) return false;
-    whysynth_engine_load_patches_from_env(h->engine);
-    whysynth_engine_get_params(h->engine, h->reported);
-    h->reported_program = whysynth_engine_get_program(h->engine);
+    zedsynth_engine_load_patches_from_env(h->engine);
+    zedsynth_engine_get_params(h->engine, h->reported);
+    h->reported_program = zedsynth_engine_get_program(h->engine);
     return true;
 }
 
 static void
 plugin_destroy(const clap_plugin_t *plugin)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
-    if (h->engine) whysynth_engine_free(h->engine);
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
+    if (h->engine) zedsynth_engine_free(h->engine);
     free(h->left);
     free(h->right);
     free(h);
@@ -490,21 +490,21 @@ plugin_destroy(const clap_plugin_t *plugin)
 static bool
 plugin_activate(const clap_plugin_t *plugin, double sample_rate, uint32_t min_frames, uint32_t max_frames)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
 
     if ((float)sample_rate != h->sample_rate) {
         if (!recreate_engine(h, (float)sample_rate)) {
             log_msg(h, CLAP_LOG_ERROR, "could not create the engine at this sample rate");
             return false;
         }
-        whysynth_engine_get_params(h->engine, h->reported);
+        zedsynth_engine_get_params(h->engine, h->reported);
     }
     free(h->left); free(h->right);
     h->max_frames = max_frames ? max_frames : 1;
     h->left = (float *)calloc(h->max_frames, sizeof(float));
     h->right = (float *)calloc(h->max_frames, sizeof(float));
     if (!h->left || !h->right) return false;
-    whysynth_engine_reset(h->engine);
+    zedsynth_engine_reset(h->engine);
     return true;
 }
 
@@ -515,8 +515,8 @@ static void plugin_stop_processing(const clap_plugin_t *plugin) {}
 static void
 plugin_reset(const clap_plugin_t *plugin)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
-    whysynth_engine_reset(h->engine);
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
+    zedsynth_engine_reset(h->engine);
 }
 
 static inline uint8_t
@@ -556,7 +556,7 @@ push_param_out(const clap_process_t *process, uint32_t time, clap_id id, double 
 static clap_process_status
 plugin_process(const clap_plugin_t *plugin, const clap_process_t *process)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
     const clap_input_events_t *in = process->in_events;
     uint32_t nframes = process->frames_count;
     uint32_t nin = in ? in->size(in) : 0;
@@ -567,7 +567,7 @@ plugin_process(const clap_plugin_t *plugin, const clap_process_t *process)
 
     for (i = 0; i < nin && ne < MAX_EVENTS; i++) {
         const clap_event_header_t *hdr = in->get(in, i);
-        whysynth_event_t ev;
+        zedsynth_event_t ev;
         uint32_t t = hdr->time > nframes ? nframes : hdr->time;
 
         if (hdr->space_id != CLAP_CORE_EVENT_SPACE_ID) continue;
@@ -606,9 +606,9 @@ plugin_process(const clap_plugin_t *plugin, const clap_process_t *process)
           }
           case CLAP_EVENT_PARAM_VALUE: {
             const clap_event_param_value_t *p = (const clap_event_param_value_t *)hdr;
-            if (p->param_id >= WHYSYNTH_PORT_FIRST_PARAM && p->param_id < WHYSYNTH_PORT_COUNT) {
-                whysynth_engine_set_param(h->engine, (int)p->param_id, (float)p->value);
-                h->reported[p->param_id] = whysynth_engine_get_param(h->engine, (int)p->param_id);
+            if (p->param_id >= ZEDSYNTH_PORT_FIRST_PARAM && p->param_id < ZEDSYNTH_PORT_COUNT) {
+                zedsynth_engine_set_param(h->engine, (int)p->param_id, (float)p->value);
+                h->reported[p->param_id] = zedsynth_engine_get_param(h->engine, (int)p->param_id);
             } else if (p->param_id == P_POLYPHONY) {
                 ev.type = Y_EV_POLYPHONY; ev.value = (int32_t)lrint(p->value); h->events[ne++] = ev;
             } else if (p->param_id == P_MONO_MODE) {
@@ -622,7 +622,7 @@ plugin_process(const clap_plugin_t *plugin, const clap_process_t *process)
           }
           case CLAP_EVENT_MIDI: {
             const clap_event_midi_t *m = (const clap_event_midi_t *)hdr;
-            if (whysynth_event_from_midi(m->data, midi_length(m->data[0]), t, &ev))
+            if (zedsynth_event_from_midi(m->data, midi_length(m->data[0]), t, &ev))
                 h->events[ne++] = ev;
             break;
           }
@@ -631,7 +631,7 @@ plugin_process(const clap_plugin_t *plugin, const clap_process_t *process)
         }
     }
 
-    whysynth_engine_render(h->engine, h->left, h->right, nframes, h->events, ne);
+    zedsynth_engine_render(h->engine, h->left, h->right, nframes, h->events, ne);
 
     if (process->audio_outputs_count >= 1) {
         const clap_audio_buffer_t *out = &process->audio_outputs[0];
@@ -647,13 +647,13 @@ plugin_process(const clap_plugin_t *plugin, const clap_process_t *process)
     }
 
     /* a program change rewrites every parameter: tell the host */
-    program_now = whysynth_engine_get_program(h->engine);
+    program_now = zedsynth_engine_get_program(h->engine);
     if (program_now != h->reported_program) {
         push_param_out(process, nframes ? nframes - 1 : 0, P_PROGRAM, program_now < 0 ? 0 : program_now);
         h->reported_program = program_now;
     }
-    for (i = WHYSYNTH_PORT_FIRST_PARAM; i < WHYSYNTH_PORT_COUNT; i++) {
-        float v = whysynth_engine_get_param(h->engine, (int)i);
+    for (i = ZEDSYNTH_PORT_FIRST_PARAM; i < ZEDSYNTH_PORT_COUNT; i++) {
+        float v = zedsynth_engine_get_param(h->engine, (int)i);
         if (v != h->reported[i]) {
             push_param_out(process, nframes ? nframes - 1 : 0, (clap_id)i, v);
             h->reported[i] = v;
@@ -677,7 +677,7 @@ plugin_get_extension(const clap_plugin_t *plugin, const char *id)
 static void
 plugin_on_main_thread(const clap_plugin_t *plugin)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)plugin->plugin_data;
+    zedsynth_clap_t *h = (zedsynth_clap_t *)plugin->plugin_data;
 
     if (h->rescan_requested) {
         h->rescan_requested = false;
@@ -692,10 +692,10 @@ plugin_on_main_thread(const clap_plugin_t *plugin)
 static const clap_plugin_t *
 create_plugin(const clap_host_t *host)
 {
-    whysynth_clap_t *h = (whysynth_clap_t *)calloc(1, sizeof(whysynth_clap_t));
+    zedsynth_clap_t *h = (zedsynth_clap_t *)calloc(1, sizeof(zedsynth_clap_t));
     if (!h) return NULL;
     h->host = host;
-    h->plugin.desc = &whysynth_desc;
+    h->plugin.desc = &zedsynth_desc;
     h->plugin.plugin_data = h;
     h->plugin.init = plugin_init;
     h->plugin.destroy = plugin_destroy;
@@ -714,35 +714,35 @@ create_plugin(const clap_host_t *host)
 /* ---- factory and entry ---- */
 
 static uint32_t factory_get_plugin_count(const clap_plugin_factory_t *f) { return 1; }
-static const clap_plugin_descriptor_t *factory_get_plugin_descriptor(const clap_plugin_factory_t *f, uint32_t i) { return i == 0 ? &whysynth_desc : NULL; }
+static const clap_plugin_descriptor_t *factory_get_plugin_descriptor(const clap_plugin_factory_t *f, uint32_t i) { return i == 0 ? &zedsynth_desc : NULL; }
 
 static const clap_plugin_t *
 factory_create_plugin(const clap_plugin_factory_t *f, const clap_host_t *host, const char *plugin_id)
 {
     if (!clap_version_is_compatible(host->clap_version)) return NULL;
-    if (strcmp(plugin_id, WHYSYNTH_CLAP_ID)) return NULL;
+    if (strcmp(plugin_id, ZEDSYNTH_CLAP_ID)) return NULL;
     return create_plugin(host);
 }
 
-static const clap_plugin_factory_t whysynth_factory = {
+static const clap_plugin_factory_t zedsynth_factory = {
     factory_get_plugin_count, factory_get_plugin_descriptor, factory_create_plugin
 };
 
 /* The three entry functions are exported with external linkage so the same
  * object can be linked statically into clap-wrapper's Audio Unit build
- * (see whysynth_clap_entry.cpp); the CLAP module itself exports clap_entry. */
-bool whysynth_clap_init(const char *plugin_path) { return true; }
-void whysynth_clap_deinit(void) {}
-const void *whysynth_clap_get_factory(const char *factory_id)
+ * (see zedsynth_clap_entry.cpp); the CLAP module itself exports clap_entry. */
+bool zedsynth_clap_init(const char *plugin_path) { return true; }
+void zedsynth_clap_deinit(void) {}
+const void *zedsynth_clap_get_factory(const char *factory_id)
 {
-    return strcmp(factory_id, CLAP_PLUGIN_FACTORY_ID) ? NULL : &whysynth_factory;
+    return strcmp(factory_id, CLAP_PLUGIN_FACTORY_ID) ? NULL : &zedsynth_factory;
 }
 
-#ifndef WHYSYNTH_CLAP_NO_ENTRY
+#ifndef ZEDSYNTH_CLAP_NO_ENTRY
 CLAP_EXPORT const clap_plugin_entry_t clap_entry = {
     .clap_version = CLAP_VERSION_INIT,
-    .init = whysynth_clap_init,
-    .deinit = whysynth_clap_deinit,
-    .get_factory = whysynth_clap_get_factory,
+    .init = zedsynth_clap_init,
+    .deinit = zedsynth_clap_deinit,
+    .get_factory = zedsynth_clap_get_factory,
 };
 #endif

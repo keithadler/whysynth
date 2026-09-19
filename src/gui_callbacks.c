@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer GUI
+/* ZedSynth DSSI software synthesizer GUI
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  *
@@ -37,10 +37,10 @@
 #include <gtk/gtk.h>
 #include <lo/lo.h>
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_ports.h"
-#include "whysynth_voice.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_ports.h"
+#include "zedsynth_voice.h"
 #include "gui_main.h"
 #include "gui_callbacks.h"
 #include "gui_images.h"
@@ -130,11 +130,11 @@ on_menu_import_activate         (GtkMenuItem     *menuitem,
 
     import_mode = (char *)user_data;
     if (!strcmp(import_mode, "xsynth")) {
-        gtk_window_set_title(GTK_WINDOW(import_file_chooser), "WhySynth - Import Xsynth-DSSI Patches");
+        gtk_window_set_title(GTK_WINDOW(import_file_chooser), "ZedSynth - Import Xsynth-DSSI Patches");
     } else if (!strcmp(import_mode, "k4")) {
-        gtk_window_set_title(GTK_WINDOW(import_file_chooser), "WhySynth - Import Kawai K4 Patches");
+        gtk_window_set_title(GTK_WINDOW(import_file_chooser), "ZedSynth - Import Kawai K4 Patches");
     } else {
-        gtk_window_set_title(GTK_WINDOW(import_file_chooser), "WhySynth - Import Patches");
+        gtk_window_set_title(GTK_WINDOW(import_file_chooser), "ZedSynth - Import Patches");
     }
 
     (GTK_ADJUSTMENT(import_file_position_spin_adj))->value = (float)patch_count;
@@ -171,7 +171,7 @@ on_menu_about_activate                 (GtkMenuItem     *menuitem,
 {
     char buf[256];
 #ifdef HAVE_CONFIG_H
-    snprintf(buf, 256, "WhySynth version: " VERSION "\n"
+    snprintf(buf, 256, "ZedSynth version: " VERSION "\n"
 #else
     snprintf(buf, 256,
 #endif

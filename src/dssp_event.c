@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2010, 2016 Sean Bolton and others.
  *
@@ -35,10 +35,10 @@
 #include "y_thread.h"
 
 
-#include "whysynth.h"
+#include "zedsynth.h"
 #include "dssp_synth.h"
 #include "dssp_event.h"
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 #include "common_data.h"
 #include "sampleset.h"
 #include "effects.h"

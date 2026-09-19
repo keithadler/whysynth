@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer GUI
+/* ZedSynth DSSI software synthesizer GUI
  *
  * Copyright (C) 2004-2005 Sean Bolton and others.
  *
@@ -27,7 +27,7 @@
 
 #include <lo/lo.h>
 
-#include "whysynth_types.h"
+#include "zedsynth_types.h"
 
 extern char *     osc_host_url;
 extern char *     osc_self_url;

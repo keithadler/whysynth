@@ -1,12 +1,12 @@
-/* WhySynth default 'factory' patches
+/* ZedSynth default 'factory' patches
  *
  * The patches encoded herein have all been dedicated to the public
  * domain by their respective authors.  See the file
  * ../extra/COPYING-patches for more information.
  *
  * Note that while the patches themselves are in the public domain,
- * this particular encoding of them as WhySynth 'C' source code is
- * (for compatibility with the rest of the WhySynth source code)
+ * this particular encoding of them as ZedSynth 'C' source code is
+ * (for compatibility with the rest of the ZedSynth source code)
  * copyrighted and licensed under the GNU General Public License.
  * You can find the copyright-unencumbered *content* of this file,
  * free from its copyrighted *form*, in the file
@@ -30,7 +30,7 @@
  * Boston, MA 02110-1301 USA.
  */
 
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 
 #define FRIENDLY_PATCH_COUNT  397
 

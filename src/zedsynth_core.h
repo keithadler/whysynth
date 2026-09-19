@@ -1,4 +1,4 @@
-/* WhySynth - the synthesizer core, with no plugin API attached
+/* ZedSynth - the synthesizer core, with no plugin API attached
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  * Copyright (C) 2026 Keith Adler.
@@ -23,12 +23,12 @@
  * connection, and the run loop, expressed without LADSPA. The DSSI plugin,
  * the CLAP and LV2 plugins and the tools all sit on this. */
 
-#ifndef _WHYSYNTH_CORE_H
-#define _WHYSYNTH_CORE_H
+#ifndef _ZEDSYNTH_CORE_H
+#define _ZEDSYNTH_CORE_H
 
 #include <stdint.h>
 
-#include "whysynth_types.h"
+#include "zedsynth_types.h"
 
 /* events, sorted by frame, handed to y_synth_run() */
 enum {
@@ -81,4 +81,4 @@ char      *dssi_configure_message(const char *fmt, ...);
  * the next run() */
 void       y_synth_request_patch(y_synth_t *synth, unsigned long patch);
 
-#endif /* _WHYSYNTH_CORE_H */
+#endif /* _ZEDSYNTH_CORE_H */

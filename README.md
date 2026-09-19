@@ -1,34 +1,43 @@
-# WhySynth
+# ZedSynth
 
-[![CI](https://github.com/keithadler/whysynth/actions/workflows/ci.yml/badge.svg)](https://github.com/keithadler/whysynth/actions/workflows/ci.yml)
-[![Release](https://img.shields.io/github/v/release/keithadler/whysynth?sort=semver)](https://github.com/keithadler/whysynth/releases/latest)
-[![License](https://img.shields.io/github/license/keithadler/whysynth)](https://github.com/keithadler/whysynth/blob/master/COPYING)
+[![CI](https://github.com/keithadler/zedsynth/actions/workflows/ci.yml/badge.svg)](https://github.com/keithadler/zedsynth/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/keithadler/zedsynth?sort=semver)](https://github.com/keithadler/zedsynth/releases/latest)
+[![License](https://img.shields.io/github/license/keithadler/zedsynth)](https://github.com/keithadler/zedsynth/blob/master/COPYING)
 
-**A versatile software synthesizer, by Sean Bolton.** Four oscillators with
+**A versatile software synthesizer.** It is WhySynth, by Sean Bolton,
+carried forward under a new name with his blessing. Four oscillators with
 eleven modes: minBLEP, wavecycle, chorused wavecycle, asynchronous granular,
 three kinds of FM, waveshaper, noise, PADsynth, and phase distortion. Two
 filters with ten modes. Three LFOs, five envelopes, a modulation mixer, and
 effects. Almost four hundred factory patches, many of them interpretations of
 Kawai K4 and Ensoniq SQ-80 sounds. Free software since 2005.
 
-Version 2 is the same synth, revived for 2026: it builds as a **CLAP** and an
-**LV2** plugin on Linux, macOS and Windows, with CMake, tests and CI, and a
-command line renderer. FFTW, DSSI, liblo, ALSA and GTK are no longer
-required. The DSSI plugin and its GTK2 editor still build on Linux when their
-libraries are installed.
+The same synth, revived for 2026: it builds as a **CLAP** and an **LV2**
+plugin on Linux, macOS and Windows, with CMake, tests and CI, and a command
+line renderer. FFTW, DSSI, liblo, ALSA and GTK are no longer required. The
+DSSI plugin and its GTK2 editor still build on Linux when their libraries are
+installed.
+
+**On the name.** This project was WhySynth through version 2.1.4. Sean Bolton,
+who wrote it, is taking his own WhySynth work in a different direction, toward
+Cortex-M7 hardware, and asked that this line of development take a name of its
+own. It follows the joke the family was already telling: Xsynth, then
+Xsynth-DSSI, then WhySynth, now ZedSynth. Your old patches still load, and
+`WHYSYNTH_DEFAULT_BANK` still works.
 
 | | |
 |---|---|
-| Plugins | CLAP (`WhySynth.clap`), LV2 (`whysynth.lv2`), Audio Unit (`WhySynth.component`, macOS), DSSI (legacy, Linux) |
-| Standalone | `WhySynth.app` (macOS), `WhySynth` (Linux), `WhySynth.exe` (Windows): its own window, audio and MIDI, no host needed |
+| Plugins | CLAP (`ZedSynth.clap`), LV2 (`zedsynth.lv2`), Audio Unit (`ZedSynth.component`, macOS), DSSI (legacy, Linux) |
+| Standalone | `ZedSynth.app` (macOS), `ZedSynth` (Linux), `ZedSynth.exe` (Windows): its own window, audio and MIDI, no host needed |
 | Platforms | Linux (x86_64 and arm64), macOS (Apple silicon and Intel), Windows (x64 and arm64) |
-| Patches | `.WhySynth` text files; the factory bank is built in |
+| Patches | text files, as before; every `.WhySynth` bank still loads |
+| Was | WhySynth 2.1.4 and earlier, by Sean Bolton |
 | License | GPL-2.0-or-later; the patches are public domain |
 
 ## Download
 
 Builds for every platform are attached to each
-[release](https://github.com/keithadler/whysynth/releases). Unzip and copy:
+[release](https://github.com/keithadler/zedsynth/releases). Unzip and copy:
 
 | Platform | CLAP | LV2 | Audio Unit | Standalone |
 |---|---|---|---|---|
@@ -156,11 +165,19 @@ still builds on Linux for DSSI hosts.
 
 ## Credits
 
+**ZedSynth is Sean Bolton's WhySynth**, continued under a new name at his
+suggestion and with his blessing. Nearly all of the synthesis here is his.
+
 WhySynth was written by Sean Bolton, drawing on Xsynth-DSSI, hexter, Csound,
 Mats Olsson's MSS, Fons Adriaensen's filters, Nasca Octavian Paul's PADsynth
 algorithm, Juhana Sadeharju's plate reverb, and wavecycle data resynthesized
 from Claude Kaber's Virtual K4 and //christian's SQ-80 work. See
-[AUTHORS](AUTHORS). The 2.0 port is by Keith Adler.
+[AUTHORS](AUTHORS). The port to CMake and the modern plugin formats, and
+everything since, is by Keith Adler.
+
+The upstream project is at
+[theabolton/whysynth](https://github.com/theabolton/whysynth), where Sean
+Bolton's own work continues.
 
 The original README, with the voice architecture, the oscillator modes and
 the wavetable guide, is kept as

@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2010, 2012 Sean Bolton and others.
  *
@@ -18,8 +18,8 @@
  * Boston, MA 02110-1301 USA.
  */
 
-#ifndef _WHYSYNTH_PORTS_H
-#define _WHYSYNTH_PORTS_H
+#ifndef _ZEDSYNTH_PORTS_H
+#define _ZEDSYNTH_PORTS_H
 
 #ifdef HAVE_CONFIG_H
 #  include <config.h>
@@ -372,5 +372,5 @@ struct y_port_descriptor {
 
 extern struct y_port_descriptor y_port_description[];
 
-#endif /* _WHYSYNTH_PORTS_H */
+#endif /* _ZEDSYNTH_PORTS_H */
 

@@ -1,4 +1,4 @@
-/* WhySynth - the engine's threading primitives, on pthreads or on Win32
+/* ZedSynth - the engine's threading primitives, on pthreads or on Win32
  *
  * Copyright (C) 2026 Keith Adler. GPL-2.0-or-later.
  *

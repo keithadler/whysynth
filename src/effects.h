@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2005, 2008, 2010 Sean Bolton and others.
  *
@@ -24,7 +24,7 @@
 #include <stdlib.h>
 
 
-#include "whysynth_types.h"
+#include "zedsynth_types.h"
 
 /*
  * effects_start_allocation

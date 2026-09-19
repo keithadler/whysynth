@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2006 Sean Bolton.
  *
@@ -21,7 +21,7 @@
 #ifndef _PADSYNTH_H
 #define _PADSYNTH_H
 
-#include "whysynth_types.h"
+#include "zedsynth_types.h"
 
 int  padsynth_init(void);
 void padsynth_fini(void);

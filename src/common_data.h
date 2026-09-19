@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin and GUI
+/* ZedSynth DSSI software synthesizer plugin and GUI
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  *
@@ -27,8 +27,8 @@
 
 #include <stdio.h>
 
-#include "whysynth_types.h"
-#include "whysynth_voice.h"
+#include "zedsynth_types.h"
+#include "zedsynth_voice.h"
 
 /* a line source for the patch parser: reads up to size-1 characters into
  * buf like fgets(), returns buf or NULL at end */
@@ -80,7 +80,7 @@ int  gui_data_interpret_k4(const char *filename, int position, int dual,
 extern int       y_friendly_patch_count;
 extern y_patch_t y_friendly_patches[];
 
-/* in whysynth_data.c: */
+/* in zedsynth_data.c: */
 void  y_data_check_patches_allocation(y_synth_t *synth, int patch_index);
 void  y_data_friendly_patches(y_synth_t *synth);
 char *y_data_load(y_synth_t *synth, char *filename);

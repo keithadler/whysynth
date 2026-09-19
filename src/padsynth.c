@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2006, 2007, 2012, 2016 Sean Bolton.
  *
@@ -34,14 +34,14 @@
 #define fftwf_malloc(x) malloc(x)
 #define fftwf_free(x) free(x)
 
-#include "whysynth_types.h"
-#include "whysynth.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
 #include "dssp_event.h"
 #include "wave_tables.h"
 #include "sampleset.h"
 #include "padsynth.h"
 
-#include "whysynth_voice_inline.h"
+#include "zedsynth_voice_inline.h"
 
 int
 padsynth_init(void)
@@ -183,7 +183,7 @@ relF(int N, float stretch) {
 };
 
 /*
- *  PADsynth-ize a WhySynth wavetable.
+ *  PADsynth-ize a ZedSynth wavetable.
  */
 int
 padsynth_render(y_sample_t *sample)

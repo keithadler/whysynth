@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2004-2007, 2010, 2012, 2016 Sean Bolton and others.
  *
@@ -42,14 +42,14 @@
 #include <math.h>
 
 
-#include "whysynth.h"
+#include "zedsynth.h"
 #include "dssp_event.h"
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 #include "wave_tables.h"
 #include "agran_oscillator.h"
 #include "padsynth.h"
 
-#include "whysynth_voice_inline.h"
+#include "zedsynth_voice_inline.h"
 
 #define M_2PI_F (2.0f * (float)M_PI)
 #define M_PI_F (float)M_PI
@@ -106,7 +106,7 @@ y_init_tables(void)
     volume_to_amplitude_table[129 + 4] = volume_to_amplitude_table[128 + 4];
 
 #if 0
-/* -FIX- may still need this or something like it (vel scaling code in whysynth_voice.c is baroque) */
+/* -FIX- may still need this or something like it (vel scaling code in zedsynth_voice.c is baroque) */
 static float velocity_to_attenuation[128];
     float ol, amp;
 

@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin and GUI
+/* ZedSynth DSSI software synthesizer plugin and GUI
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  *
@@ -27,9 +27,9 @@
 #include <inttypes.h>
 #include <locale.h>
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_voice.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_voice.h"
 #include "common_data.h"
 
 y_patch_t y_init_voice = {
@@ -572,7 +572,11 @@ y_data_read_patch_r(y_reader_t *r, y_patch_t *patch)
         if (!r->gets(r->ctx, buf, 256)) return 0;
     } while (y_data_is_comment(buf));
 
-    if (sscanf(buf, " WhySynth patch format %d begin", &format) != 1 ||
+    /* The on-disk format is unchanged by the rename, and is still called a WhySynth
+     * patch, so banks pass back and forth between ZedSynth and WhySynth untouched.
+     * A file written under the new name is read too. */
+    if ((sscanf(buf, " WhySynth patch format %d begin", &format) != 1 &&
+         sscanf(buf, " ZedSynth patch format %d begin", &format) != 1) ||
         (format != 0 && format != 1))
         return 0;
 
@@ -747,8 +751,9 @@ y_data_read_patch_r(y_reader_t *r, y_patch_t *patch)
 
             continue;
 
-        /* 'WhySynth patch end' */
-        } else if (sscanf(buf, " WhySynth patch %3s", buf2) == 1 &&
+        /* 'WhySynth patch end', or the same under the new name */
+        } else if ((sscanf(buf, " WhySynth patch %3s", buf2) == 1 ||
+                    sscanf(buf, " ZedSynth patch %3s", buf2) == 1) &&
                  !strcmp(buf2, "end")) {
 
             break; /* finished */
@@ -878,7 +883,7 @@ y_data_patch_to_text(const y_patch_t *patch, char *buf, size_t size)
     size_t p = 0, *pos = &p;
 
     if (size) buf[0] = 0;
-    PUTS("# WhySynth patch\nWhySynth patch format 1 begin\nname ");
+    PUTS("# ZedSynth patch\nWhySynth patch format 1 begin\nname ");
     put_text(buf, size, pos, patch->name, 30);
     if (patch->category[0]) {
         PUTS("\ncategory ");

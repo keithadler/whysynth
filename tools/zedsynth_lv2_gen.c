@@ -1,10 +1,10 @@
-/* whysynth-lv2-gen: write the LV2 plugin description and factory presets
+/* zedsynth-lv2-gen: write the LV2 plugin description and factory presets
  *
  * Copyright (C) 2026 Keith Adler. GPL-2.0-or-later.
  *
- *   whysynth-lv2-gen ttl OUT
- *   whysynth-lv2-gen presets OUT [patchfile]
- *   whysynth-lv2-gen manifest OUT [suffix]
+ *   zedsynth-lv2-gen ttl OUT
+ *   zedsynth-lv2-gen presets OUT [patchfile]
+ *   zedsynth-lv2-gen manifest OUT [suffix]
  *
  * Both are derived from the port table and the factory patches at build
  * time, so the LV2 bundle can never drift from the synth.
@@ -15,10 +15,10 @@
 #include <string.h>
 #include <math.h>
 
-#include "whysynth_engine.h"
-#include "whysynth_lv2_ports.h"
+#include "zedsynth_engine.h"
+#include "zedsynth_lv2_ports.h"
 
-#define URI "https://github.com/keithadler/whysynth"
+#define URI "https://github.com/keithadler/zedsynth"
 
 static void
 put_num(FILE *f, float v)
@@ -61,7 +61,7 @@ write_ttl(FILE *f)
         "\n"
         "<" URI ">\n"
         "    a lv2:Plugin , lv2:InstrumentPlugin ;\n"
-        "    doap:name \"WhySynth\" ;\n"
+        "    doap:name \"ZedSynth\" ;\n"
         "    doap:license <http://opensource.org/licenses/gpl-2.0> ;\n"
         "    doap:maintainer [ foaf:name \"Keith Adler\" ; foaf:homepage <" URI "> ] ;\n"
         "    doap:developer [ foaf:name \"Sean Bolton\" ] ;\n"
@@ -98,30 +98,30 @@ write_ttl(FILE *f)
         "    ]",
         LV2_PORT_CONTROL, LV2_PORT_NOTIFY, LV2_PORT_OUT_LEFT, LV2_PORT_OUT_RIGHT);
 
-    for (port = WHYSYNTH_PORT_FIRST_PARAM; port < WHYSYNTH_PORT_COUNT; port++) {
-        const whysynth_param_info_t *pi = whysynth_param_info(port);
+    for (port = ZEDSYNTH_PORT_FIRST_PARAM; port < ZEDSYNTH_PORT_COUNT; port++) {
+        const zedsynth_param_info_t *pi = zedsynth_param_info(port);
         char sym[64];
         int v;
 
-        whysynth_param_symbol(port, sym, sizeof(sym));
+        zedsynth_param_symbol(port, sym, sizeof(sym));
         fprintf(f, " , [\n        a lv2:InputPort , lv2:ControlPort ;\n        lv2:index %d ;\n        lv2:symbol \"%s\" ;\n        lv2:name ",
-                port - WHYSYNTH_PORT_FIRST_PARAM + LV2_PORT_FIRST_PARAM, sym);
+                port - ZEDSYNTH_PORT_FIRST_PARAM + LV2_PORT_FIRST_PARAM, sym);
         put_ttl_string(f, pi->name);
         fprintf(f, " ;\n        lv2:default "); put_num(f, pi->def);
         fprintf(f, " ;\n        lv2:minimum "); put_num(f, pi->min);
         fprintf(f, " ;\n        lv2:maximum "); put_num(f, pi->max);
         if (pi->is_integer) {
             fprintf(f, " ;\n        lv2:portProperty lv2:integer");
-            if (pi->kind == WHYSYNTH_KIND_COMBO) fprintf(f, " , lv2:enumeration");
-            if (pi->kind == WHYSYNTH_KIND_BOOLEAN) fprintf(f, " , lv2:toggled");
-        } else if (pi->kind == WHYSYNTH_KIND_LOGARITHMIC) {
+            if (pi->kind == ZEDSYNTH_KIND_COMBO) fprintf(f, " , lv2:enumeration");
+            if (pi->kind == ZEDSYNTH_KIND_BOOLEAN) fprintf(f, " , lv2:toggled");
+        } else if (pi->kind == ZEDSYNTH_KIND_LOGARITHMIC) {
             fprintf(f, " ;\n        lv2:portProperty <http://lv2plug.in/ns/ext/port-props#logarithmic>");
         }
         if (port == 197) fprintf(f, " ;\n        units:unit units:hz");
-        if (pi->kind == WHYSYNTH_KIND_COMBO) {
+        if (pi->kind == ZEDSYNTH_KIND_COMBO) {
             int first = 1;
             for (v = (int)pi->min; v <= (int)pi->max; v++) {
-                const char *name = whysynth_param_value_name(port, v);
+                const char *name = zedsynth_param_value_name(port, v);
                 if (!name) continue;
                 fprintf(f, first ? " ;\n        lv2:scalePoint [ rdfs:label " : " ,\n                       [ rdfs:label ");
                 put_ttl_string(f, name);
@@ -160,7 +160,7 @@ write_ttl(FILE *f)
         "                       [ rdfs:label \"Always\" ; rdf:value 2 ] , [ rdfs:label \"Leftover\" ; rdf:value 3 ] ,\n"
         "                       [ rdfs:label \"Off\" ; rdf:value 4 ]\n"
         "    ] .\n",
-        LV2_PORT_POLYPHONY, WHYSYNTH_DEFAULT_POLYPHONY, WHYSYNTH_MAX_POLYPHONY,
+        LV2_PORT_POLYPHONY, ZEDSYNTH_DEFAULT_POLYPHONY, ZEDSYNTH_MAX_POLYPHONY,
         LV2_PORT_MONO_MODE, LV2_PORT_GLIDE_MODE);
 }
 
@@ -181,28 +181,28 @@ preset_uri_part(const char *name, int index, char *buf, size_t size)
 
 /* hosts discover presets from the manifest, so every preset is listed there */
 static void
-write_manifest(FILE *f, whysynth_engine_t *e, const char *suffix)
+write_manifest(FILE *f, zedsynth_engine_t *e, const char *suffix)
 {
-    int count = whysynth_engine_patch_count(e), i;
+    int count = zedsynth_engine_patch_count(e), i;
 
     fprintf(f,
         "@prefix lv2:  <http://lv2plug.in/ns/lv2core#> .\n"
         "@prefix pset: <http://lv2plug.in/ns/ext/presets#> .\n"
         "@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .\n\n"
-        "<" URI ">\n    a lv2:Plugin ;\n    lv2:binary <whysynth%s> ;\n    rdfs:seeAlso <whysynth.ttl> .\n\n", suffix);
+        "<" URI ">\n    a lv2:Plugin ;\n    lv2:binary <zedsynth%s> ;\n    rdfs:seeAlso <zedsynth.ttl> .\n\n", suffix);
     for (i = 0; i < count; i++) {
         char part[96];
-        preset_uri_part(whysynth_engine_patch_name(e, i), i, part, sizeof(part));
+        preset_uri_part(zedsynth_engine_patch_name(e, i), i, part, sizeof(part));
         fprintf(f, "<" URI "#%s>\n    a pset:Preset ;\n    lv2:appliesTo <" URI "> ;\n    rdfs:seeAlso <presets.ttl> .\n\n", part);
     }
 }
 
 static void
-write_presets(FILE *f, whysynth_engine_t *e)
+write_presets(FILE *f, zedsynth_engine_t *e)
 {
-    int count = whysynth_engine_patch_count(e);
+    int count = zedsynth_engine_patch_count(e);
     int i, port;
-    float ports[WHYSYNTH_PORT_COUNT];
+    float ports[ZEDSYNTH_PORT_COUNT];
 
     fprintf(f,
         "@prefix atom:  <http://lv2plug.in/ns/ext/atom#> .\n"
@@ -214,16 +214,16 @@ write_presets(FILE *f, whysynth_engine_t *e)
 
     for (i = 0; i < count; i++) {
         char part[96], sym[64];
-        const char *name = whysynth_engine_patch_name(e, i);
-        whysynth_engine_select_program(e, i);
-        whysynth_engine_get_params(e, ports);
+        const char *name = zedsynth_engine_patch_name(e, i);
+        zedsynth_engine_select_program(e, i);
+        zedsynth_engine_get_params(e, ports);
         preset_uri_part(name, i, part, sizeof(part));
         fprintf(f, "<" URI "#%s>\n    a pset:Preset ;\n    lv2:appliesTo <" URI "> ;\n    rdfs:label ", part);
         put_ttl_string(f, name);
         fprintf(f, " ;\n    lv2:port");
-        for (port = WHYSYNTH_PORT_FIRST_PARAM; port < WHYSYNTH_PORT_COUNT; port++) {
-            whysynth_param_symbol(port, sym, sizeof(sym));
-            fprintf(f, "%s [ lv2:symbol \"%s\" ; pset:value ", port == WHYSYNTH_PORT_FIRST_PARAM ? "" : " ,", sym);
+        for (port = ZEDSYNTH_PORT_FIRST_PARAM; port < ZEDSYNTH_PORT_COUNT; port++) {
+            zedsynth_param_symbol(port, sym, sizeof(sym));
+            fprintf(f, "%s [ lv2:symbol \"%s\" ; pset:value ", port == ZEDSYNTH_PORT_FIRST_PARAM ? "" : " ,", sym);
             put_num(f, ports[port]);
             fprintf(f, " ]");
         }
@@ -240,7 +240,7 @@ main(int argc, char **argv)
     int rc = 0;
 
     if (!out_path || (strcmp(mode, "ttl") && strcmp(mode, "presets") && strcmp(mode, "manifest"))) {
-        fprintf(stderr, "usage: whysynth-lv2-gen ttl OUT | presets OUT [patchfile] | manifest OUT [suffix]\n");
+        fprintf(stderr, "usage: zedsynth-lv2-gen ttl OUT | presets OUT [patchfile] | manifest OUT [suffix]\n");
         return 2;
     }
     out = fopen(out_path, "w");
@@ -249,21 +249,21 @@ main(int argc, char **argv)
     if (!strcmp(mode, "ttl")) {
         write_ttl(out);
     } else {
-        whysynth_engine_t *e = whysynth_engine_new(48000.0f);
+        zedsynth_engine_t *e = zedsynth_engine_new(48000.0f);
         if (!e) { fprintf(stderr, "could not create engine\n"); fclose(out); return 1; }
         if (!strcmp(mode, "manifest")) {
             write_manifest(out, e, argc > 3 ? argv[3] : ".so");
         } else {
             if (argc > 3) {
                 char *err = NULL;
-                if (!whysynth_engine_load_patches_file(e, argv[3], &err)) {
+                if (!zedsynth_engine_load_patches_file(e, argv[3], &err)) {
                     fprintf(stderr, "could not load %s: %s\n", argv[3], err ? err : "?");
                     rc = 1;
                 }
             }
             if (!rc) write_presets(out, e);
         }
-        whysynth_engine_free(e);
+        zedsynth_engine_free(e);
     }
     fclose(out);
     return rc;

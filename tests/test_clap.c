@@ -1,4 +1,4 @@
-/* whysynth CLAP plugin test: load the built plugin as a host would
+/* zedsynth CLAP plugin test: load the built plugin as a host would
  *
  * Copyright (C) 2026 Keith Adler. GPL-2.0-or-later.
  *
@@ -47,7 +47,7 @@ static void host_log(const clap_host_t *host, clap_log_severity sev, const char 
 static const clap_host_log_t host_log_ext = { host_log };
 
 static const clap_host_t host = {
-    CLAP_VERSION_INIT, NULL, "test host", "whysynth", "https://github.com/keithadler/whysynth", "1.0",
+    CLAP_VERSION_INIT, NULL, "test host", "zedsynth", "https://github.com/keithadler/zedsynth", "1.0",
     host_get_extension, host_request_restart, host_request_process, host_request_callback
 };
 
@@ -216,8 +216,8 @@ main(int argc, char **argv)
     CHECK(factory->get_plugin_count(factory) == 1, "one plugin");
     {
         const clap_plugin_descriptor_t *d = factory->get_plugin_descriptor(factory, 0);
-        CHECK(d && !strcmp(d->id, "com.github.keithadler.whysynth"), "descriptor id");
-        CHECK(d && !strcmp(d->name, "WhySynth"), "descriptor name");
+        CHECK(d && !strcmp(d->id, "com.github.keithadler.zedsynth"), "descriptor id");
+        CHECK(d && !strcmp(d->name, "ZedSynth"), "descriptor name");
         CHECK(factory->create_plugin(factory, &host, "com.example.nope") == NULL, "unknown id refused");
         p = factory->create_plugin(factory, &host, d->id);
     }
@@ -342,7 +342,8 @@ main(int argc, char **argv)
         params->get_value(p, 60, &after);
         CHECK(fabs(after - before) < 1e-3, "VCF1 restored by state (%f vs %f)", after, before);
         CHECK(params->get_value(p, 1003, &v) && fabs(v - 3.0) < 1e-9, "program restored by state (%f)", v);
-        m.pos = 0; m.data[0] = 'Z';
+        /* not 'Z' or 'W': both are real first bytes of a state header */
+        m.pos = 0; m.data[0] = '#';
         CHECK(!state->load(p, &is), "corrupt state refused");
         free(m.data);
     }

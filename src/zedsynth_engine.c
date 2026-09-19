@@ -1,4 +1,4 @@
-/* WhySynth - host-independent engine API
+/* ZedSynth - host-independent engine API
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  * Copyright (C) 2026 Keith Adler.
@@ -26,26 +26,26 @@
 #include <ctype.h>
 #include "y_thread.h"
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_ports.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_ports.h"
 #include "dssp_event.h"
 #include "common_data.h"
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 #include "wave_tables.h"
-#include "whysynth_core.h"
-#include "whysynth_names.h"
-#include "whysynth_engine.h"
+#include "zedsynth_core.h"
+#include "zedsynth_names.h"
+#include "zedsynth_engine.h"
 
-struct _whysynth_engine_t {
+struct _zedsynth_engine_t {
     y_synth_t *synth;
-    float      ports[WHYSYNTH_PORT_COUNT];
+    float      ports[ZEDSYNTH_PORT_COUNT];
     int        program;
 };
 
 /* ---- parameter descriptions ---- */
 
-static whysynth_param_info_t param_info[WHYSYNTH_PORT_COUNT];
+static zedsynth_param_info_t param_info[ZEDSYNTH_PORT_COUNT];
 static int param_info_ready = 0;
 static void ports_from_patch(const y_patch_t *patch, float *v);
 
@@ -73,9 +73,9 @@ build_param_info(void)
 
     if (param_info_ready) return;
     y_synth_static_init();
-    for (i = 0; i < WHYSYNTH_PORT_COUNT; i++) {
+    for (i = 0; i < ZEDSYNTH_PORT_COUNT; i++) {
         const struct y_port_descriptor *d = &y_port_description[i];
-        whysynth_param_info_t *p = &param_info[i];
+        zedsynth_param_info_t *p = &param_info[i];
         p->name = d->name;
         p->min = d->lower_bound;
         if (d->type == Y_PORT_TYPE_COMBO &&
@@ -94,10 +94,10 @@ build_param_info(void)
      * defaults a host should see; the table's own defaults are not a
      * coherent patch */
     if (y_friendly_patch_count > 0) {
-        float v[WHYSYNTH_PORT_COUNT];
+        float v[ZEDSYNTH_PORT_COUNT];
         memset(v, 0, sizeof(v));
         ports_from_patch(&y_friendly_patches[0], v);
-        for (i = WHYSYNTH_PORT_FIRST_PARAM; i < WHYSYNTH_PORT_COUNT; i++) {
+        for (i = ZEDSYNTH_PORT_FIRST_PARAM; i < ZEDSYNTH_PORT_COUNT; i++) {
             float d = v[i];
             if (d < param_info[i].min) d = param_info[i].min;
             if (d > param_info[i].max) d = param_info[i].max;
@@ -107,26 +107,26 @@ build_param_info(void)
     param_info_ready = 1;
 }
 
-const whysynth_param_info_t *
-whysynth_param_info(int port)
+const zedsynth_param_info_t *
+zedsynth_param_info(int port)
 {
     build_param_info();
-    if (port < 0 || port >= WHYSYNTH_PORT_COUNT) return NULL;
+    if (port < 0 || port >= ZEDSYNTH_PORT_COUNT) return NULL;
     return &param_info[port];
 }
 
 const char *
-whysynth_param_value_name(int port, int value)
+zedsynth_param_value_name(int port, int value)
 {
-    const whysynth_param_info_t *p = whysynth_param_info(port);
-    if (!p || p->kind != WHYSYNTH_KIND_COMBO) return NULL;
-    return whysynth_combo_value_name(p->combo_type, value);
+    const zedsynth_param_info_t *p = zedsynth_param_info(port);
+    if (!p || p->kind != ZEDSYNTH_KIND_COMBO) return NULL;
+    return zedsynth_combo_value_name(p->combo_type, value);
 }
 
 void
-whysynth_param_symbol(int port, char *buf, size_t size)
+zedsynth_param_symbol(int port, char *buf, size_t size)
 {
-    const whysynth_param_info_t *p = whysynth_param_info(port);
+    const zedsynth_param_info_t *p = zedsynth_param_info(port);
     size_t n = 0, i;
     int last_us = 1;
 
@@ -152,23 +152,23 @@ whysynth_param_symbol(int port, char *buf, size_t size)
 
 /* ---- lifetime ---- */
 
-whysynth_engine_t *
-whysynth_engine_new(float sample_rate)
+zedsynth_engine_t *
+zedsynth_engine_new(float sample_rate)
 {
-    whysynth_engine_t *e;
+    zedsynth_engine_t *e;
     int i;
 
     if (sample_rate < 1000.0f) return NULL;
     build_param_info();
 
-    e = (whysynth_engine_t *)calloc(1, sizeof(whysynth_engine_t));
+    e = (zedsynth_engine_t *)calloc(1, sizeof(zedsynth_engine_t));
     if (!e) return NULL;
     e->synth = y_synth_new((unsigned long)lrintf(sample_rate));
     if (!e->synth) {
         free(e);
         return NULL;
     }
-    for (i = WHYSYNTH_PORT_FIRST_PARAM; i < WHYSYNTH_PORT_COUNT; i++) {
+    for (i = ZEDSYNTH_PORT_FIRST_PARAM; i < ZEDSYNTH_PORT_COUNT; i++) {
         e->ports[i] = param_info[i].def;
         y_synth_connect_port(e->synth, i, &e->ports[i]);
     }
@@ -183,7 +183,7 @@ whysynth_engine_new(float sample_rate)
 }
 
 void
-whysynth_engine_free(whysynth_engine_t *e)
+zedsynth_engine_free(zedsynth_engine_t *e)
 {
     if (!e) return;
     if (e->synth) y_synth_free(e->synth);
@@ -191,13 +191,13 @@ whysynth_engine_free(whysynth_engine_t *e)
 }
 
 void
-whysynth_engine_reset(whysynth_engine_t *e)
+zedsynth_engine_reset(zedsynth_engine_t *e)
 {
     y_synth_activate(e->synth);
 }
 
 float
-whysynth_engine_get_sample_rate(const whysynth_engine_t *e)
+zedsynth_engine_get_sample_rate(const zedsynth_engine_t *e)
 {
     return e->synth->sample_rate;
 }
@@ -205,18 +205,18 @@ whysynth_engine_get_sample_rate(const whysynth_engine_t *e)
 /* ---- parameters ---- */
 
 float
-whysynth_engine_get_param(const whysynth_engine_t *e, int port)
+zedsynth_engine_get_param(const zedsynth_engine_t *e, int port)
 {
-    if (port < 0 || port >= WHYSYNTH_PORT_COUNT) return 0.0f;
+    if (port < 0 || port >= ZEDSYNTH_PORT_COUNT) return 0.0f;
     return e->ports[port];
 }
 
 void
-whysynth_engine_set_param(whysynth_engine_t *e, int port, float value)
+zedsynth_engine_set_param(zedsynth_engine_t *e, int port, float value)
 {
-    const whysynth_param_info_t *p;
+    const zedsynth_param_info_t *p;
 
-    if (port < WHYSYNTH_PORT_FIRST_PARAM || port >= WHYSYNTH_PORT_COUNT) return;
+    if (port < ZEDSYNTH_PORT_FIRST_PARAM || port >= ZEDSYNTH_PORT_COUNT) return;
     p = &param_info[port];
     if (value != value) value = p->def;
     if (value < p->min) value = p->min;
@@ -226,7 +226,7 @@ whysynth_engine_set_param(whysynth_engine_t *e, int port, float value)
 }
 
 void
-whysynth_engine_get_params(const whysynth_engine_t *e, float *out)
+zedsynth_engine_get_params(const zedsynth_engine_t *e, float *out)
 {
     memcpy(out, e->ports, sizeof(e->ports));
 }
@@ -234,13 +234,13 @@ whysynth_engine_get_params(const whysynth_engine_t *e, float *out)
 /* ---- voice settings ---- */
 
 int
-whysynth_engine_set_polyphony(whysynth_engine_t *e, int voices)
+zedsynth_engine_set_polyphony(zedsynth_engine_t *e, int voices)
 {
     char buf[16];
     char *err;
 
     if (voices < 1) voices = 1;
-    if (voices > WHYSYNTH_MAX_POLYPHONY) voices = WHYSYNTH_MAX_POLYPHONY;
+    if (voices > ZEDSYNTH_MAX_POLYPHONY) voices = ZEDSYNTH_MAX_POLYPHONY;
     snprintf(buf, sizeof(buf), "%d", voices);
     err = y_synth_handle_polyphony(e->synth, buf);
     free(err);
@@ -248,13 +248,13 @@ whysynth_engine_set_polyphony(whysynth_engine_t *e, int voices)
 }
 
 int
-whysynth_engine_get_polyphony(const whysynth_engine_t *e)
+zedsynth_engine_get_polyphony(const zedsynth_engine_t *e)
 {
     return e->synth->polyphony;
 }
 
 int
-whysynth_engine_set_mono_mode(whysynth_engine_t *e, int mode)
+zedsynth_engine_set_mono_mode(zedsynth_engine_t *e, int mode)
 {
     static const char *names[4] = { "off", "on", "once", "both" };
     char *err;
@@ -267,13 +267,13 @@ whysynth_engine_set_mono_mode(whysynth_engine_t *e, int mode)
 }
 
 int
-whysynth_engine_get_mono_mode(const whysynth_engine_t *e)
+zedsynth_engine_get_mono_mode(const zedsynth_engine_t *e)
 {
     return e->synth->monophonic;
 }
 
 int
-whysynth_engine_set_glide_mode(whysynth_engine_t *e, int mode)
+zedsynth_engine_set_glide_mode(zedsynth_engine_t *e, int mode)
 {
     static const char *names[5] = { "legato", "initial", "always", "leftover", "off" };
     char *err;
@@ -286,25 +286,25 @@ whysynth_engine_set_glide_mode(whysynth_engine_t *e, int mode)
 }
 
 int
-whysynth_engine_get_glide_mode(const whysynth_engine_t *e)
+zedsynth_engine_get_glide_mode(const zedsynth_engine_t *e)
 {
     return e->synth->glide;
 }
 
 void
-whysynth_engine_set_program_cancel(whysynth_engine_t *e, int on)
+zedsynth_engine_set_program_cancel(zedsynth_engine_t *e, int on)
 {
     e->synth->program_cancel = on ? 1 : 0;
 }
 
 int
-whysynth_engine_get_program_cancel(const whysynth_engine_t *e)
+zedsynth_engine_get_program_cancel(const zedsynth_engine_t *e)
 {
     return e->synth->program_cancel;
 }
 
 int
-whysynth_engine_get_active_voices(const whysynth_engine_t *e)
+zedsynth_engine_get_active_voices(const zedsynth_engine_t *e)
 {
     int i, n = 0;
     for (i = 0; i < e->synth->voices; i++)
@@ -315,26 +315,26 @@ whysynth_engine_get_active_voices(const whysynth_engine_t *e)
 /* ---- the patch bank ---- */
 
 int
-whysynth_engine_patch_count(const whysynth_engine_t *e)
+zedsynth_engine_patch_count(const zedsynth_engine_t *e)
 {
     return (int)e->synth->patch_count;
 }
 
 const char *
-whysynth_engine_patch_name(const whysynth_engine_t *e, int index)
+zedsynth_engine_patch_name(const zedsynth_engine_t *e, int index)
 {
     if (index < 0 || (unsigned int)index >= e->synth->patch_count) return NULL;
     return e->synth->patches[index].name;
 }
 
 int
-whysynth_engine_get_program(const whysynth_engine_t *e)
+zedsynth_engine_get_program(const zedsynth_engine_t *e)
 {
     return e->program;
 }
 
 void
-whysynth_engine_select_program(whysynth_engine_t *e, int index)
+zedsynth_engine_select_program(zedsynth_engine_t *e, int index)
 {
     if (index < 0 || (unsigned int)index >= e->synth->patch_count) return;
     e->program = index;
@@ -344,7 +344,7 @@ whysynth_engine_select_program(whysynth_engine_t *e, int index)
 /* read patches from a reader into the bank at slot 0 (the DSSI 'load'
  * semantics); returns the count read */
 static int
-load_patches(whysynth_engine_t *e, y_reader_t *r, char **errmsg)
+load_patches(zedsynth_engine_t *e, y_reader_t *r, char **errmsg)
 {
     y_synth_t *synth = e->synth;
     int count = 0;
@@ -366,7 +366,7 @@ load_patches(whysynth_engine_t *e, y_reader_t *r, char **errmsg)
 }
 
 int
-whysynth_engine_load_patches_file(whysynth_engine_t *e, const char *path, char **errmsg)
+zedsynth_engine_load_patches_file(zedsynth_engine_t *e, const char *path, char **errmsg)
 {
     FILE *fh;
     y_reader_t r;
@@ -384,7 +384,7 @@ whysynth_engine_load_patches_file(whysynth_engine_t *e, const char *path, char *
 }
 
 int
-whysynth_engine_load_patches_memory(whysynth_engine_t *e, const char *data, size_t size, char **errmsg)
+zedsynth_engine_load_patches_memory(zedsynth_engine_t *e, const char *data, size_t size, char **errmsg)
 {
     y_reader_t r;
     y_memreader_t m;
@@ -395,7 +395,7 @@ whysynth_engine_load_patches_memory(whysynth_engine_t *e, const char *data, size
 }
 
 int
-whysynth_engine_patch_text(const whysynth_engine_t *e, int index, char *buf, size_t size)
+zedsynth_engine_patch_text(const zedsynth_engine_t *e, int index, char *buf, size_t size)
 {
     if (index < 0 || (unsigned int)index >= e->synth->patch_count) return -1;
     return y_data_patch_to_text(&e->synth->patches[index], buf, size);
@@ -472,7 +472,7 @@ ports_from_patch(const y_patch_t *patch, float *v)
 
 /* the inverse of y_voice_set_ports(): the current parameters as a patch */
 static void
-patch_from_ports(const whysynth_engine_t *e, y_patch_t *patch)
+patch_from_ports(const zedsynth_engine_t *e, y_patch_t *patch)
 {
     const float *v = e->ports;
 #define I(port) ((int)lrintf(v[port]))
@@ -542,7 +542,7 @@ patch_from_ports(const whysynth_engine_t *e, y_patch_t *patch)
 }
 
 int
-whysynth_engine_store_patch(whysynth_engine_t *e, int index, const char *name)
+zedsynth_engine_store_patch(zedsynth_engine_t *e, int index, const char *name)
 {
     y_synth_t *synth = e->synth;
     y_patch_t patch;
@@ -566,15 +566,17 @@ whysynth_engine_store_patch(whysynth_engine_t *e, int index, const char *name)
 }
 
 int
-whysynth_engine_load_patches_from_env(whysynth_engine_t *e)
+zedsynth_engine_load_patches_from_env(zedsynth_engine_t *e)
 {
-    const char *path = getenv("WHYSYNTH_DEFAULT_BANK");
+    /* WHYSYNTH_DEFAULT_BANK still works: people had it set before the rename */
+    const char *path = getenv("ZEDSYNTH_DEFAULT_BANK");
+    if (!path || !*path) path = getenv("WHYSYNTH_DEFAULT_BANK");
     char *err = NULL;
     int n;
 
     if (!path || !*path) return 0;
-    n = whysynth_engine_load_patches_file(e, path, &err);
-    if (!n) fprintf(stderr, "WhySynth: could not load default bank '%s': %s\n", path, err ? err : "unknown error");
+    n = zedsynth_engine_load_patches_file(e, path, &err);
+    if (!n) fprintf(stderr, "ZedSynth: could not load default bank '%s': %s\n", path, err ? err : "unknown error");
     free(err);
     return n;
 }
@@ -582,7 +584,7 @@ whysynth_engine_load_patches_from_env(whysynth_engine_t *e)
 /* ---- events and rendering ---- */
 
 int
-whysynth_event_from_midi(const uint8_t *msg, size_t len, uint32_t frame, whysynth_event_t *ev)
+zedsynth_event_from_midi(const uint8_t *msg, size_t len, uint32_t frame, zedsynth_event_t *ev)
 {
     memset(ev, 0, sizeof(*ev));
     ev->frame = frame;
@@ -624,8 +626,8 @@ whysynth_event_from_midi(const uint8_t *msg, size_t len, uint32_t frame, whysynt
 }
 
 void
-whysynth_engine_render(whysynth_engine_t *e, float *left, float *right, uint32_t nframes,
-                       const whysynth_event_t *events, uint32_t nevents)
+zedsynth_engine_render(zedsynth_engine_t *e, float *left, float *right, uint32_t nframes,
+                       const zedsynth_event_t *events, uint32_t nevents)
 {
     uint32_t i;
 
@@ -643,17 +645,18 @@ whysynth_engine_render(whysynth_engine_t *e, float *left, float *right, uint32_t
 
 /* ---- state ---- */
 
-#define STATE_HEADER "WhySynth state 1\n"
+#define STATE_HEADER     "ZedSynth state 1\n"
+#define STATE_HEADER_OLD "WhySynth state 1\n"   /* saved before the rename */
 
 size_t
-whysynth_engine_state_size(const whysynth_engine_t *e)
+zedsynth_engine_state_size(const zedsynth_engine_t *e)
 {
     /* header and settings, 196 numbers, and a generous 4 KB per patch */
-    return 512 + WHYSYNTH_PORT_COUNT * 16 + (size_t)e->synth->patch_count * 4096;
+    return 512 + ZEDSYNTH_PORT_COUNT * 16 + (size_t)e->synth->patch_count * 4096;
 }
 
 size_t
-whysynth_engine_state_save(const whysynth_engine_t *e, char *buf, size_t size)
+zedsynth_engine_state_save(const zedsynth_engine_t *e, char *buf, size_t size)
 {
     y_synth_t *synth = e->synth;
     size_t pos = 0;
@@ -668,8 +671,8 @@ whysynth_engine_state_save(const whysynth_engine_t *e, char *buf, size_t size)
     APPEND(STATE_HEADER);
     APPEND("polyphony %d\nmonophonic %d\nglide %d\nprogram_cancel %d\nprogram %d\n",
            synth->polyphony, synth->monophonic, synth->glide, synth->program_cancel, e->program);
-    APPEND("ports %d", WHYSYNTH_PARAM_COUNT);
-    for (i = WHYSYNTH_PORT_FIRST_PARAM; i < WHYSYNTH_PORT_COUNT; i++) {
+    APPEND("ports %d", ZEDSYNTH_PARAM_COUNT);
+    for (i = ZEDSYNTH_PORT_FIRST_PARAM; i < ZEDSYNTH_PORT_COUNT; i++) {
         char num[32];
         int k;
         snprintf(num, sizeof(num), "%.9g", (double)e->ports[i]);
@@ -682,25 +685,27 @@ whysynth_engine_state_save(const whysynth_engine_t *e, char *buf, size_t size)
         if (len < 0) { buf[0] = 0; return 0; }
         pos += (size_t)len;
     }
-    APPEND("WhySynth state end\n");
+    APPEND("ZedSynth state end\n");
 #undef APPEND
     return pos;
 }
 
 int
-whysynth_engine_state_load(whysynth_engine_t *e, const char *buf, size_t size)
+zedsynth_engine_state_load(zedsynth_engine_t *e, const char *buf, size_t size)
 {
     y_synth_t *synth = e->synth;
     y_reader_t r;
     y_memreader_t m;
     char line[8192];
     int polyphony = -1, mono = -1, glide = -1, cancel = -1, program = -1, nports = 0, npatches = -1;
-    float ports[WHYSYNTH_PORT_COUNT];
+    float ports[ZEDSYNTH_PORT_COUNT];
     y_patch_t *patches = NULL;
     int i, count = 0;
 
-    if (size < sizeof(STATE_HEADER) - 1 || memcmp(buf, STATE_HEADER, sizeof(STATE_HEADER) - 1) != 0)
-        { if (getenv("WHYSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; }
+    if (size < sizeof(STATE_HEADER) - 1 ||
+        (memcmp(buf, STATE_HEADER, sizeof(STATE_HEADER) - 1) != 0 &&
+         memcmp(buf, STATE_HEADER_OLD, sizeof(STATE_HEADER_OLD) - 1) != 0))
+        { if (getenv("ZEDSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; }
     y_reader_init_memory(&r, &m, buf, size);
     r.gets(r.ctx, line, sizeof(line));   /* header */
     memcpy(ports, e->ports, sizeof(ports));
@@ -714,29 +719,29 @@ whysynth_engine_state_load(whysynth_engine_t *e, const char *buf, size_t size)
         if (sscanf(line, "ports %d", &nports) == 1) {
             const char *p = strchr(line, ' ');
             p = p ? strchr(p + 1, ' ') : NULL;
-            for (i = 0; i < nports && i + WHYSYNTH_PORT_FIRST_PARAM < WHYSYNTH_PORT_COUNT && p; i++) {
+            for (i = 0; i < nports && i + ZEDSYNTH_PORT_FIRST_PARAM < ZEDSYNTH_PORT_COUNT && p; i++) {
                 double d;
                 if (!y_sscanf(p, " %lf", &d)) break;
-                ports[i + WHYSYNTH_PORT_FIRST_PARAM] = (float)d;
+                ports[i + ZEDSYNTH_PORT_FIRST_PARAM] = (float)d;
                 p++;
                 while (*p && *p != ' ') p++;
             }
             continue;
         }
         if (sscanf(line, "patches %d", &npatches) == 1) {
-            if (npatches < 0 || npatches > 100000) { free(patches); { if (getenv("WHYSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; } }
+            if (npatches < 0 || npatches > 100000) { free(patches); { if (getenv("ZEDSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; } }
             if (npatches > 0) {
                 patches = (y_patch_t *)malloc((size_t)npatches * sizeof(y_patch_t));
-                if (!patches) { if (getenv("WHYSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; }
+                if (!patches) { if (getenv("ZEDSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; }
             }
             for (count = 0; count < npatches; count++)
                 if (!y_data_read_patch_r(&r, &patches[count])) break;
             continue;
         }
-        if (!strncmp(line, "WhySynth state end", 18)) break;
+        if (!strncmp(line, "ZedSynth state end", 18)) break;
     }
 
-    if (npatches < 0 || count != npatches) { free(patches); { if (getenv("WHYSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; } }
+    if (npatches < 0 || count != npatches) { free(patches); { if (getenv("ZEDSYNTH_STATE_DEBUG")) fprintf(stderr, "state_load: failed at line %d (count=%d npatches=%d nports=%d)\n", __LINE__, count, npatches, nports); return 0; } }
 
     /* apply, bank first so a program index means something */
     y_mutex_lock(&synth->patches_mutex);
@@ -750,11 +755,11 @@ whysynth_engine_state_load(whysynth_engine_t *e, const char *buf, size_t size)
     free(patches);
 
     if (cancel >= 0) synth->program_cancel = cancel ? 1 : 0;
-    if (polyphony > 0) whysynth_engine_set_polyphony(e, polyphony);
-    whysynth_engine_set_mono_mode(e, mono < 0 ? 0 : mono);
-    if (glide >= 0) whysynth_engine_set_glide_mode(e, glide);
+    if (polyphony > 0) zedsynth_engine_set_polyphony(e, polyphony);
+    zedsynth_engine_set_mono_mode(e, mono < 0 ? 0 : mono);
+    if (glide >= 0) zedsynth_engine_set_glide_mode(e, glide);
     e->program = (program >= 0 && (unsigned int)program < synth->patch_count) ? program : -1;
-    for (i = WHYSYNTH_PORT_FIRST_PARAM; i < WHYSYNTH_PORT_COUNT; i++)
-        whysynth_engine_set_param(e, i, ports[i]);
+    for (i = ZEDSYNTH_PORT_FIRST_PARAM; i < ZEDSYNTH_PORT_COUNT; i++)
+        zedsynth_engine_set_param(e, i, ports[i]);
     return 1;
 }

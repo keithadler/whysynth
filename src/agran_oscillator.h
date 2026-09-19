@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin
+/* ZedSynth DSSI software synthesizer plugin
  *
  * Copyright (C) 2005 Sean Bolton and others.
  *
@@ -24,8 +24,8 @@
 #ifndef _AGRAN_OSCILLATOR_H
 #define _AGRAN_OSCILLATOR_H
 
-#include "whysynth.h"
-#include "whysynth_voice.h"
+#include "zedsynth.h"
+#include "zedsynth_voice.h"
 
 #define AG_DEFAULT_GRAIN_COUNT  (Y_MAX_POLYPHONY * 10)
 

@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer GUI
+/* ZedSynth DSSI software synthesizer GUI
  *
  * Copyright (C) 2004-2017 Sean Bolton and others.
  *
@@ -43,9 +43,9 @@
 #endif
 #endif
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_voice.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_voice.h"
 #include "gui_main.h"
 #include "common_data.h"
 
@@ -110,8 +110,8 @@ patch_write_eg(FILE *file, char which, struct peg *eg)
 int
 gui_data_write_patch(FILE *file, y_patch_t *patch, int format)
 {
-    fprintf(file, "# WhySynth patch\n");
-    fprintf(file, "WhySynth patch format %d begin\n", format);
+    fprintf(file, "# ZedSynth patch\n");
+    fprintf(file, "WhySynth patch format %d begin\n", format);   /* the shared on-disk format */
 
     fprintf(file, "name ");
     patch_write_text(file, patch->name, 30);
@@ -997,7 +997,7 @@ gui_data_import_xsynth(const char *filename, int position, int dual, char **mess
  * product manual.  Only the most basic patch parameters are
  * converted, while many others are ignored.  Still, it results in
  * a few interesting conversions, if only as starting points for new
- * WhySynth patches. */
+ * ZedSynth patches. */
 
 y_patch_t y_init_voice_k4_single = {
         /* -PORTS- */

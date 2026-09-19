@@ -1,4 +1,4 @@
-/* WhySynth - display names for stepped parameter values
+/* ZedSynth - display names for stepped parameter values
  *
  * Copyright (C) 2026 Keith Adler. GPL-2.0-or-later.
  * The names match the GTK editor's, so users see the same words everywhere.
@@ -7,11 +7,11 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_ports.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_ports.h"
 #include "wave_tables.h"
-#include "whysynth_names.h"
+#include "zedsynth_names.h"
 
 static const char *osc_modes[] = {
     "Off", "minBLEP", "Wavecycle", "Async Granular", "FM Wave->Sine", "FM Sine->Wave",
@@ -40,7 +40,7 @@ static const char *eg_shapes[] = {
 #define PICK(table) ((value >= 0 && value < (int)(sizeof(table) / sizeof(table[0]))) ? table[value] : NULL)
 
 const char *
-whysynth_combo_value_name(int combo_type, int value)
+zedsynth_combo_value_name(int combo_type, int value)
 {
     switch (combo_type) {
       case Y_COMBO_TYPE_OSC_MODE:    return PICK(osc_modes);

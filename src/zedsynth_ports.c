@@ -1,4 +1,4 @@
-/* WhySynth DSSI software synthesizer plugin and GUI
+/* ZedSynth DSSI software synthesizer plugin and GUI
  *
  * Copyright (C) 2004-2010, 2013 Sean Bolton and others.
  *
@@ -26,7 +26,7 @@
 #endif
 
 
-#include "whysynth_ports.h"
+#include "zedsynth_ports.h"
 #include "agran_oscillator.h"
 
 struct y_port_descriptor y_port_description[Y_PORTS_COUNT] = {

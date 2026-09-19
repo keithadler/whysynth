@@ -1,7 +1,7 @@
-/* WhySynth - LV2 plugin
+/* ZedSynth - LV2 plugin
  *
  * Copyright (C) 2026 Keith Adler.
- * WhySynth is copyright (C) 2004-2017 Sean Bolton and others.
+ * ZedSynth is copyright (C) 2004-2017 Sean Bolton and others.
  *
  * This program is free software; you can redistribute it and/or
  * modify it under the terms of the GNU General Public License as
@@ -36,14 +36,14 @@
 #include <lv2/midi/midi.h>
 #include <lv2/urid/urid.h>
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_ports.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_ports.h"
 #include "dssp_event.h"
-#include "whysynth_core.h"
-#include "whysynth_lv2_ports.h"
+#include "zedsynth_core.h"
+#include "zedsynth_lv2_ports.h"
 
-#define WHYSYNTH_URI "https://github.com/keithadler/whysynth"
+#define ZEDSYNTH_URI "https://github.com/keithadler/zedsynth"
 #define MAX_EVENTS   4096
 
 typedef struct {
@@ -54,13 +54,13 @@ typedef struct {
     LV2_URID                 midi_event;
     int                      last_polyphony, last_mono, last_glide;
     y_event_t                events[MAX_EVENTS];
-} whysynth_lv2_t;
+} zedsynth_lv2_t;
 
 static LV2_Handle
 instantiate(const LV2_Descriptor *descriptor, double rate, const char *bundle_path,
             const LV2_Feature *const *features)
 {
-    whysynth_lv2_t *h = (whysynth_lv2_t *)calloc(1, sizeof(whysynth_lv2_t));
+    zedsynth_lv2_t *h = (zedsynth_lv2_t *)calloc(1, sizeof(zedsynth_lv2_t));
     LV2_URID_Map *map = NULL;
     const LV2_Feature *const *f;
 
@@ -68,7 +68,7 @@ instantiate(const LV2_Descriptor *descriptor, double rate, const char *bundle_pa
     for (f = features; *f; f++)
         if (!strcmp((*f)->URI, LV2_URID__map)) map = (LV2_URID_Map *)(*f)->data;
     if (!map) {
-        fprintf(stderr, "WhySynth.lv2: host does not provide urid:map\n");
+        fprintf(stderr, "ZedSynth.lv2: host does not provide urid:map\n");
         free(h);
         return NULL;
     }
@@ -77,7 +77,7 @@ instantiate(const LV2_Descriptor *descriptor, double rate, const char *bundle_pa
     y_synth_static_init();
     h->synth = y_synth_new((unsigned long)(rate + 0.5));
     if (!h->synth) {
-        fprintf(stderr, "WhySynth.lv2: could not create the synth\n");
+        fprintf(stderr, "ZedSynth.lv2: could not create the synth\n");
         free(h);
         return NULL;
     }
@@ -90,7 +90,7 @@ instantiate(const LV2_Descriptor *descriptor, double rate, const char *bundle_pa
 static void
 connect_port(LV2_Handle instance, uint32_t port, void *data)
 {
-    whysynth_lv2_t *h = (whysynth_lv2_t *)instance;
+    zedsynth_lv2_t *h = (zedsynth_lv2_t *)instance;
 
     switch (port) {
       case LV2_PORT_CONTROL:   h->control = (const LV2_Atom_Sequence *)data; return;
@@ -102,20 +102,20 @@ connect_port(LV2_Handle instance, uint32_t port, void *data)
       case LV2_PORT_GLIDE_MODE: h->glide_mode = (const float *)data; return;
       default: break;
     }
-    if (port >= LV2_PORT_FIRST_PARAM && port < LV2_PORT_FIRST_PARAM + WHYSYNTH_LV2_PARAM_COUNT)
+    if (port >= LV2_PORT_FIRST_PARAM && port < LV2_PORT_FIRST_PARAM + ZEDSYNTH_LV2_PARAM_COUNT)
         y_synth_connect_port(h->synth, port - LV2_PORT_FIRST_PARAM + Y_PORT_OSC1_MODE, (float *)data);
 }
 
 static void
 activate(LV2_Handle instance)
 {
-    y_synth_activate(((whysynth_lv2_t *)instance)->synth);
+    y_synth_activate(((zedsynth_lv2_t *)instance)->synth);
 }
 
 static void
 run(LV2_Handle instance, uint32_t nframes)
 {
-    whysynth_lv2_t *h = (whysynth_lv2_t *)instance;
+    zedsynth_lv2_t *h = (zedsynth_lv2_t *)instance;
     uint32_t ne = 0;
     y_event_t ev;
 
@@ -179,13 +179,13 @@ run(LV2_Handle instance, uint32_t nframes)
 static void
 deactivate(LV2_Handle instance)
 {
-    y_synth_deactivate(((whysynth_lv2_t *)instance)->synth);
+    y_synth_deactivate(((zedsynth_lv2_t *)instance)->synth);
 }
 
 static void
 cleanup(LV2_Handle instance)
 {
-    whysynth_lv2_t *h = (whysynth_lv2_t *)instance;
+    zedsynth_lv2_t *h = (zedsynth_lv2_t *)instance;
     if (h->synth) y_synth_free(h->synth);
     free(h);
 }
@@ -197,7 +197,7 @@ extension_data(const char *uri)
 }
 
 static const LV2_Descriptor descriptor = {
-    WHYSYNTH_URI, instantiate, connect_port, activate, run, deactivate, cleanup, extension_data
+    ZEDSYNTH_URI, instantiate, connect_port, activate, run, deactivate, cleanup, extension_data
 };
 
 LV2_SYMBOL_EXPORT const LV2_Descriptor *

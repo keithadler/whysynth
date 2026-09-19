@@ -34,17 +34,17 @@
 #include <ladspa.h>
 #include <dssi.h>
 
-#include "whysynth_types.h"
-#include "whysynth.h"
-#include "whysynth_ports.h"
+#include "zedsynth_types.h"
+#include "zedsynth.h"
+#include "zedsynth_ports.h"
 #include "dssp_event.h"
 #include "common_data.h"
-#include "whysynth_voice.h"
+#include "zedsynth_voice.h"
 #include "wave_tables.h"
-#include "whysynth_core.h"
+#include "zedsynth_core.h"
 
 /* This file is the DSSI plugin. Everything it does is one call into
- * whysynth_core.c, which the CLAP and LV2 plugins share. */
+ * zedsynth_core.c, which the CLAP and LV2 plugins share. */
 
 static LADSPA_Descriptor *y_LADSPA_descriptor = NULL;
 static DSSI_Descriptor   *y_DSSI_descriptor = NULL;
@@ -211,10 +211,10 @@ void _init()
     y_LADSPA_descriptor = (LADSPA_Descriptor *) malloc(sizeof(LADSPA_Descriptor));
     if (y_LADSPA_descriptor) {
         y_LADSPA_descriptor->UniqueID = 2187;
-        y_LADSPA_descriptor->Label = "WhySynth";
+        y_LADSPA_descriptor->Label = "ZedSynth";
         y_LADSPA_descriptor->Properties = 0;
-        y_LADSPA_descriptor->Name = "WhySynth " VERSION " DSSI plugin";
-        y_LADSPA_descriptor->Maker = "Sean Bolton <whysynth AT smbolton DOT com>";
+        y_LADSPA_descriptor->Name = "ZedSynth " VERSION " DSSI plugin";
+        y_LADSPA_descriptor->Maker = "Sean Bolton <zedsynth AT smbolton DOT com>";
         y_LADSPA_descriptor->Copyright = "GNU General Public License version 2 or later";
         y_LADSPA_descriptor->PortCount = Y_PORTS_COUNT;
 
